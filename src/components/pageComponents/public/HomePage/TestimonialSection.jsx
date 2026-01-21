@@ -24,7 +24,7 @@ const data = [
 const TestimonialSection = () => {
   return (
     <>
-      <SectionHeading title={"testimonial"} position="right" />
+      <SectionHeading title={"testimonial"} position_right={true} />
       <div className="Container">
         <div className="area-wrapper !py-16">
           <div className="flex flex-col gap-20 md:flex-row md:gap-4 items-center justify-center">

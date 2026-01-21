@@ -73,7 +73,7 @@ const FaqSection = () => {
 
     return (
         <>
-            <SectionHeading title={"faq"} position={"left"} />
+            <SectionHeading title={"faq"} position_right={false} />
             <div className="Container">
                 <div className="area-wrapper !pt-16 !pb-0">
                     <div className="text-center mb-10">

@@ -126,7 +126,7 @@ const ProgramSection = () => {
 
     return (
         <>
-            <SectionHeading title={"Our program"} position="left" />
+            <SectionHeading title={"Our program"} position_right={false} />
             <div className="relative">
                 <div className="programs Container">
                     <div className="py-10">
