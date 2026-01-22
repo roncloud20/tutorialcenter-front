@@ -1,13 +1,279 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* custom color */
+@layer base {
+  :root {
+    --primary-color: #09314f;
+    --secondary-color: #e83831;
+    --ascent-color: #bb9e7f;
+  }
+}
+.no-scroll {
+  overflow-y: hidden;
+}
+.header-title {
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 40px;
+}
+.semi-title {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 40px;
+}
+@media (max-width: 640px) {
+  .header-title {
+    font-size: 25px;
+  }
+  .semi-title {
+    font-size: 22px;
+  }
+}
+.btn-title {
+  @apply px-10 py-2 rounded-full bg-gradient-to-r from-[#09314F] to-[#E83831] text-white;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* .scroll ::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.scroll .position ::-webkit-scrollbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+.scroll ::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 10px;
+} */
+
+* {
+  box-sizing: border-box;
+  font-family: "DM Sans", serif;
+}
+body {
+  background: white;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+a {
+  font-weight: 500;
+  font-size: 16px;
+}
+table {
+  width: 100%;
+  border-spacing: 0;
+  border-collapse: collapse;
+}
+th {
+  font-weight: 600;
+  font-size: 17px;
+}
+td {
+  font-weight: 400;
+  font-size: 15px;
+}
+li {
+  list-style-type: none;
+}
+img {
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+input,
+select,
+form {
+  display: block;
+  background: inherit;
+  font-size: 16px;
+}
+input,
+textarea {
+  appearance: none;
+  transition: all 0.25s cubic-bezier(0.65, 0.05, 0.36, 1);
+  background: none;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+select {
+  width: 100%;
+  max-width: 100%;
+  outline: none;
+}
+select,
+input:focus {
+  border: none;
+  outline: none;
+  background: transparent;
+}
+textarea:focus {
+  outline: none;
+  border: none;
+}
+::placeholder {
+  font-style: italic;
+  font-size: 16px;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+.Container {
+  @apply xl:max-w-[1200px] w-full mx-auto 2xl:px-9 lg:px-8 px-5 relative overflow-hidden;
+}
+/* background cover */
+.background-shadow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 30;
+}
+/* Customize the full calender component  */
+.fc .fc-toolbar-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.fc-direction-ltr .fc-toolbar > * > :not(:first-child) {
+  display: none;
+}
+.fc .fc-button .fc-icon {
+  font-size: 16px;
+}
+.fc .fc-button {
+  padding: 5px;
+  background-color: transparent;
+  color: black;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+}
+.fc .fc-button-primary:hover {
+  background-color: transparent;
+  color: black;
+  border: none;
+}
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background-color: transparent;
+  color: black;
+  border: none;
+}
+a.fc-event {
+  cursor: pointer;
+}
+.fc-h-event {
+  background: transparent;
+  border: none;
+}
+.fc-h-event .fc-event-main {
+  color: white;
+  font-size: 14px;
+}
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: #a9c1d3;
+}
+/* Small Calender */
+.react-calendar__navigation__label__labelText--from {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  @apply dark:text-lightGrey;
+}
+.react-calendar__navigation button {
+  @apply dark:!text-lightGrey;
+}
+.react-calendar {
+  padding: 8px;
+  width: 100% !important;
+  background: #ffffff !important;
+  @apply dark:!bg-darkMode;
+  border: none !important;
+  border-radius: 8px !important;
+  font-family: inherit !important;
+}
+.react-calendar__navigation {
+  height: 20px !important;
+  margin-bottom: 0.9rem !important;
+}
+.react-calendar__month-view__weekdays {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  @apply dark:!text-lightGrey;
+}
+.react-calendar__tile {
+  font-size: 10px !important;
+  @apply dark:text-lightGrey;
+  padding: 5px !important;
+}
+.react-calendar__month-view__days__day--neighboringMonth,
+.react-calendar__decade-view__years__year--neighboringDecade,
+.react-calendar__century-view__decades__decade--neighboringCentury {
+  @apply dark:text-mainGrey;
+}
+.react-calendar__tile--active {
+  @apply dark:!bg-lightGrey dark:!text-mainBlue !bg-mainBlue !text-mainWhite;
+  border-radius: 5px;
+}
+abbr:where([title]) {
+  text-decoration: none !important;
+}
+
+/* animate navbar  */
+.animate-header {
+  animation: headerSlideDown 0.45s ease forwards;
+  will-change: transform;
+}
+@keyframes headerSlideDown {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+.animate-mobile {
+  animation: mobileSlideDown 0.45s ease forwards;
+  will-change: transform;
+}
+@keyframes mobileSlideDown {
+  0% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.transition-drop-down {
+  transition: all 0.4s ease;
+}
+.grid-5 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: #000;
+  opacity: 0.5;
+}
+.ellipsis {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  white-space: nowrap;
 }
