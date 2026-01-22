@@ -1,3 +1,4 @@
+import Footer from "../../components/pageComponents/public/Global/Footer";
 import Navbar from "../../components/pageComponents/public/Global/Navbar";
 import StickyButtons from "../../components/pageComponents/public/Global/StickyButtons";
 import BenefitSection from "../../components/pageComponents/public/HomePage/BenefitSection";
@@ -20,6 +21,7 @@ const Home = () => {
             <TestimonialSection />
             <FaqSection />
             <ContactSection />
+            <Footer />
         </>
     );
 }

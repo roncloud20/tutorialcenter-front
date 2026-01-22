@@ -12,8 +12,10 @@ const navigation = [
   { path: "/blog", name: "News / Blog" },
 ];
 export default function Navbar() {
+  
   const [visible, setVisible] = useState(false);
   const scrollVisible = useScrollVisibility();
+
   return (
     <>
       <div

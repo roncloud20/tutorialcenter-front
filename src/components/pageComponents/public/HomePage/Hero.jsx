@@ -1,9 +1,8 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import logo1 from "../../../../assets/images/TC 1.png";
 import student_image from "../../../../assets/images/childLearning.png";
 import hero_image from "../../../../assets/images/teacher-student.png";
-import dotted_box from "../../../../assets/images/dots.svg";
+import dotted_box from "../../../../assets/svg/dots.svg";
 
 export default function Hero() {
   return (
@@ -50,7 +49,7 @@ export default function Hero() {
                             <div className="h-[520px] rounded-lg relative">
                                 <img
                                     src={hero_image}
-                                    alt=""
+                                    alt="hero section image"
                                     className="w-full h-full object-contain "
                                 />
                                 <img
