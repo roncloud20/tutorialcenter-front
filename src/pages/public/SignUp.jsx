@@ -32,13 +32,69 @@ const InputField = ({
   </div>
 );
 
+const CustomDropdown = ({
+  icon,
+  placeholder,
+  value,
+  options,
+  onChange,
+  isOpen,
+  onToggle,
+  isSmall = false,
+  multiSelect = false,
+}) => (
+  <div className="relative w-full">
+    <div
+      onClick={onToggle}
+      className={`flex items-center bg-[#F9F4F3] rounded-xl px-4 cursor-pointer border border-transparent hover:border-[#09314F] transition-all w-full
+        ${isSmall ? 'h-[40px] md:h-[45px]' : 'h-[55px]'}`}
+    >
+      {icon && <span className="text-gray-400 mr-2 md:mr-3">{icon}</span>}
+      <span className={`flex-1 font-bold truncate ${value && (multiSelect ? value.length > 0 : true) ? 'text-gray-700' : 'text-gray-400'} 
+        ${isSmall ? 'text-[10px] md:text-[11px] uppercase' : 'text-sm'}`}>
+        {multiSelect 
+          ? (value?.length > 0 ? value.join(", ") : placeholder)
+          : (value || placeholder)}
+      </span>
+      <span className="text-gray-400 text-[10px] ml-1">▼</span>
+    </div>
+
+    {isOpen && (
+      <div className={`absolute top-full left-0 mt-2 bg-white shadow-2xl rounded-xl z-[100] border border-gray-100 p-1 overflow-y-auto custom-scrollbar
+        ${isSmall ? 'w-[140px] md:w-[160px] max-h-[180px]' : 'w-full max-h-[250px]'}`}>
+        {options.map((opt) => {
+          const isSelected = multiSelect ? value?.includes(opt) : value === opt;
+          return (
+            <div
+              key={opt}
+              onClick={() => {
+                onChange(opt);
+                if (!multiSelect) onToggle();
+              }}
+              className={`p-2 md:p-3 mb-1 rounded-lg font-bold cursor-pointer transition-colors
+                ${isSmall ? 'text-[9px] md:text-[10px]' : 'text-sm'}
+                ${isSelected 
+                  ? 'bg-[#86D294] text-white shadow-md' 
+                  : 'bg-[#F9EAEA] text-gray-600 hover:bg-gray-200'}`}
+            >
+              {opt}
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </div>
+);
+
 const StudentBiodataFields = ({
   student,
   onChange,
   errors = {},
   showLabels = true,
   studentIndex = null,
-  onBack = null
+  onBack = null,
+  activeDropdown = null,
+  setActiveDropdown = null
 }) => {
   const getFieldValue = (field) => student[field] || "";
   const getFieldError = (field) => errors[field];
@@ -226,19 +282,15 @@ const StudentBiodataFields = ({
           </label>
         )}
         <div className="flex flex-col">
-          <div className="flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] w-full relative">
-            <span className="text-gray-400 mr-3"><GenderIcon /></span>
-            <select
-              value={getFieldValue('gender')}
-              onChange={(e) => onChange('gender', e.target.value)}
-              className="bg-transparent w-full outline-none text-gray-700 font-medium appearance-none cursor-pointer"
-            >
-              <option value="" disabled>Select gen...</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-            <span className="text-gray-400 absolute right-4">▼</span>
-          </div>
+          <CustomDropdown
+            icon={<GenderIcon />}
+            placeholder="Select gender"
+            value={getFieldValue('gender')}
+            options={["Male", "Female"]}
+            onChange={(val) => onChange('gender', val)}
+            isOpen={activeDropdown === `gender_${studentIndex}`}
+            onToggle={() => setActiveDropdown(activeDropdown === `gender_${studentIndex}` ? null : `gender_${studentIndex}`)}
+          />
           {getFieldError('gender') && (
             <p className="text-red-500 text-xs mt-1 ml-1 font-semibold">
               {getFieldError('gender')}
@@ -255,20 +307,15 @@ const StudentBiodataFields = ({
           </label>
         )}
         <div className="flex flex-col">
-          <div className="flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] w-full relative">
-            <span className="text-gray-400 mr-3"><DepartmentIcon /></span>
-            <select
-              value={getFieldValue('department')}
-              onChange={(e) => onChange('department', e.target.value)}
-              className="bg-transparent w-full outline-none text-gray-700 font-medium appearance-none cursor-pointer"
-            >
-              <option value="" disabled>Select dep...</option>
-              <option value="Science">Science</option>
-              <option value="Arts">Arts</option>
-              <option value="Commercial">Commercial</option>
-            </select>
-            <span className="text-gray-400 absolute right-4">▼</span>
-          </div>
+          <CustomDropdown
+            icon={<DepartmentIcon />}
+            placeholder="Select department"
+            value={getFieldValue('department')}
+            options={["Science", "Arts", "Commercial"]}
+            onChange={(val) => onChange('department', val)}
+            isOpen={activeDropdown === `dept_${studentIndex}`}
+            onToggle={() => setActiveDropdown(activeDropdown === `dept_${studentIndex}` ? null : `dept_${studentIndex}`)}
+          />
           {getFieldError('department') && (
             <p className="text-red-500 text-xs mt-1 ml-1 font-semibold">
               {getFieldError('department')}
@@ -550,6 +597,14 @@ const validateAllBiodataFields = (studentData) => {
 
 const DURATIONS = ["Monthly", "Quarterly", "Biannually", "Annually"];
 
+  // Helper to calculate total for student
+  const calculateStudentTotal = () => {
+    return selectedExams.reduce((acc, exam) => {
+      const duration = selectedDurations[exam] || "Monthly";
+      return acc + (PRICES[exam]?.[duration] || 0);
+    }, 0).toLocaleString();
+  };
+
 const [selectedPayment, setSelectedPayment] = useState(null);
   useEffect(() => {
     
@@ -599,6 +654,12 @@ const [selectedPayment, setSelectedPayment] = useState(null);
       return "Password needs a special character (@$!%*#?&).";
 
     return null;
+  };
+
+  const updateStudent = (index, field, value) => {
+    const updated = [...students];
+    updated[index] = { ...updated[index], [field]: value };
+    setStudents(updated);
   };
 
   const handleStep1Submit = () => {
@@ -1017,15 +1078,14 @@ const handleGuardianStep8Submit = (paymentMethod) => {
           {/* LEFT SIDE: Content Area */}
           <div className="w-full md:w-1/2 min-h-full bg-[#F4F4F4] flex flex-col relative px-6 py-10 lg:px-[100px] lg:py-[100px] order-2 md:order-1">
         
-              <button
-                onClick={() => navigate("/")}
-                className="absolute left-6 top-8 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
-              >
-                <img src={ReturnArrow} alt="Back" className="h-6 w-6" />
-              </button>
-            
               {/* 1. TOP NAV */}
               <div className="relative w-full flex items-center justify-center mb-8 md:mb-10">
+                <button
+                  onClick={() => navigate("/")}
+                  className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
+                >
+                  <img src={ReturnArrow} alt="Back" className="h-6 w-6" />
+                </button>
                 <img
                   src={TC_logo}
                   alt="Logo"
@@ -1152,19 +1212,21 @@ const handleGuardianStep8Submit = (paymentMethod) => {
         <div className="w-full md:w-1/2 h-full flex flex-col relative px-6 py-10 lg:px-[100px] lg:py-[60px] bg-[#F9FAFB] order-2 md:order-1 overflow-y-auto">
           
           <div className="w-full max-w-[448px] mx-auto">
-            {/* Return Arrow */}
-            <button
-              onClick={() => setStep(1)}
-              className="p-2 hover:bg-gray-200 rounded-full transition-all text-xl mb-4 w-fit"
-            >
-              <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
-            </button>
-
             {/* Header Area */}
-            <div className="flex flex-col items-center mb-8 md:mb-10 text-center">
-              <img src={TC_logo} alt="Logo" className="h-12 md:h-14 w-auto mb-4" />
+            <div className="relative w-full flex items-center justify-center mb-8 md:mb-10 text-center">
+              {/* Return Arrow */}
+              <button
+                onClick={() => setStep(1)}
+                className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
+              >
+                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+              </button>
+              <img src={TC_logo} alt="Logo" className="h-12 md:h-14 w-auto" />
+            </div>
+
+            <div className="text-center mb-8 md:mb-10">
               <h2 className="text-2xl md:text-3xl font-bold text-[#1A1A1A]">Sign Up</h2>
-              <p className="text-gray-400 text-sm max-w-[280px]">
+              <p className="text-gray-400 text-sm max-w-[280px] mx-auto">
                 Create an account to get started with us.
               </p>
             </div>
@@ -1203,7 +1265,12 @@ const handleGuardianStep8Submit = (paymentMethod) => {
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-gray-600 ml-1">Email / Phone Number</label>
                 <div className="flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] border border-transparent focus-within:border-[#09314F] transition-all">
-                  <span className="text-gray-400 mr-3">✉</span>
+                  <span className="mr-3 flex-shrink-0">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M2.003 5.884L10 9.882L17.997 5.884C17.9674 5.37444 17.7441 4.89549 17.3728 4.54523C17.0016 4.19497 16.5104 3.99991 16 4H4C3.48958 3.99991 2.99845 4.19497 2.62718 4.54523C2.25591 4.89549 2.0326 5.37444 2.003 5.884Z" fill="#121D24"/>
+                      <path d="M18 8.118L10 12.118L2 8.118V14C2 14.5304 2.21071 15.0391 2.58579 15.4142C2.96086 15.7893 3.46957 16 4 16H16C16.5304 16 17.0391 15.7893 17.4142 15.4142C17.7893 15.0391 18 14.5304 18 14V8.118Z" fill="#121D24"/>
+                    </svg>
+                  </span>
                   <input
                     type="text"
                     placeholder="you@example.com or +234xxxxxxxxxx"
@@ -1217,7 +1284,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-gray-600 ml-1">User Type</label>
                 <div className="flex items-center bg-[#F0F0F0] rounded-xl px-4 h-[55px] border border-gray-200 cursor-not-allowed">
-                  <span className="text-gray-400 mr-3">ℹ</span>
+                  {/* <span className="text-gray-400 mr-3"></span> */}
                   <span className="text-gray-500 font-medium flex-1">
                     {userRole === "student" ? "Student" : "Guardian / Parent"}
                   </span>
@@ -1228,7 +1295,12 @@ const handleGuardianStep8Submit = (paymentMethod) => {
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-gray-600 ml-1">Password</label>
                 <div className="flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] border border-transparent focus-within:border-[#09314F] transition-all">
-                  <button onClick={() => setShowPassword(!showPassword)} className="text-gray-400 mr-3">👁</button>
+                  <button onClick={() => setShowPassword(!showPassword)} className="mr-3 flex-shrink-0 hover:opacity-70 transition-all">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M10.0032 12C11.1078 12 12.0032 11.1046 12.0032 10C12.0032 8.89543 11.1078 8 10.0032 8C8.89861 8 8.00318 8.89543 8.00318 10C8.00318 11.1046 8.89861 12 10.0032 12Z" fill="#121D24"/>
+                      <path fillRule="evenodd" clipRule="evenodd" d="M0.460938 10C1.73519 5.94291 5.52549 3 10.0031 3C14.4808 3 18.2711 5.94288 19.5453 9.99996C18.2711 14.0571 14.4808 17 10.0031 17C5.5255 17 1.73521 14.0571 0.460938 10ZM14.0032 10C14.0032 12.2091 12.2123 14 10.0032 14C7.79404 14 6.00318 12.2091 6.00318 10C6.00318 7.79086 7.79404 6 10.0032 6C12.2123 6 14.0032 7.79086 14.0032 10Z" fill="#121D24"/>
+                    </svg>
+                  </button>
                   <input
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter password"
@@ -1242,7 +1314,12 @@ const handleGuardianStep8Submit = (paymentMethod) => {
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-gray-600 ml-1">Confirm Password</label>
                 <div className="flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] border border-transparent focus-within:border-[#09314F] transition-all">
-                  <button onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="text-gray-400 mr-3">👁</button>
+                  <button onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="mr-3 flex-shrink-0 hover:opacity-70 transition-all">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M10.0032 12C11.1078 12 12.0032 11.1046 12.0032 10C12.0032 8.89543 11.1078 8 10.0032 8C8.89861 8 8.00318 8.89543 8.00318 10C8.00318 11.1046 8.89861 12 10.0032 12Z" fill="#121D24"/>
+                      <path fillRule="evenodd" clipRule="evenodd" d="M0.460938 10C1.73519 5.94291 5.52549 3 10.0031 3C14.4808 3 18.2711 5.94288 19.5453 9.99996C18.2711 14.0571 14.4808 17 10.0031 17C5.5255 17 1.73521 14.0571 0.460938 10ZM14.0032 10C14.0032 12.2091 12.2123 14 10.0032 14C7.79404 14 6.00318 12.2091 6.00318 10C6.00318 7.79086 7.79404 6 10.0032 6C12.2123 6 14.0032 7.79086 14.0032 10Z" fill="#121D24"/>
+                    </svg>
+                  </button>
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Re-enter password"
@@ -1253,16 +1330,28 @@ const handleGuardianStep8Submit = (paymentMethod) => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="checkbox"
-                  id="rememberMe"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 accent-[#09314F] cursor-pointer"
-                />
-                <label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer">Remember me</label>
-              </div>
+              <label className="flex items-center gap-3 mt-1 cursor-pointer group select-none">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`w-5 h-5 border-2 rounded-md bg-white transition-all flex items-center justify-center
+                    ${rememberMe ? 'border-[#09314F]' : 'border-gray-300'}`}>
+                    {rememberMe && (
+                      <span className="text-[#09314F] text-sm font-bold animate-in fade-in duration-200">
+                        ✓
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <span className="text-sm text-gray-600 font-medium group-hover:text-[#09314F] transition-colors">
+                  Remember me
+                </span>
+              </label>
 
               {formError && (
                 <p className="text-red-500 text-xs font-bold bg-red-50 p-3 rounded-lg border border-red-100">{formError}</p>
@@ -1282,8 +1371,14 @@ const handleGuardianStep8Submit = (paymentMethod) => {
                 <div className="flex-1 h-[1px] bg-gray-200"></div>
               </div>
 
-              <button className="w-full h-[50px] border border-gray-200 rounded-xl flex items-center justify-center gap-3 font-medium text-gray-600 hover:bg-gray-50 transition-all mt-2">
-                <span>G</span> Sign up with google
+              <button className="w-full h-[52px] border border-[#E5E7EB] rounded-xl flex items-center justify-center gap-4 font-medium text-[#6B7280] bg-white hover:bg-gray-50 transition-all shadow-sm active:scale-[0.98] mt-2 mb-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1 .67-2.28 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                <span className="text-[15px]">Sign up with google</span>
               </button>
 
               <p className="text-center text-sm text-gray-500 mt-4 pb-2">
@@ -1311,13 +1406,6 @@ const handleGuardianStep8Submit = (paymentMethod) => {
             className="w-full h-full bg-cover bg-center"
             style={{ backgroundImage: `url(${accentImg})` }}
           />
-          {/* Back Button (Positioned over image section) */}
-          <button
-            onClick={() => setStep(2)}
-            className="absolute left-6 top-6 md:left-10 md:top-16 bg-white/80 backdrop-blur-sm md:bg-transparent w-10 h-10 md:w-auto md:h-auto rounded-full flex items-center justify-center hover:text-gray-500 transition-all shadow-md md:shadow-none z-20"
-          >
-            <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
-          </button>
 
           {/* Login Button (Hidden on Mobile) */}
           <div className="hidden md:block absolute bottom-[60px] left-0">
@@ -1333,9 +1421,18 @@ const handleGuardianStep8Submit = (paymentMethod) => {
         {/* --- FORM SECTION --- */}
         <div className="w-full md:w-1/2 h-full flex flex-col bg-[#F9FAFB] order-2 md:order-1 px-6 py-10 lg:px-[100px] lg:py-[60px] overflow-y-auto">
           <div className="w-full max-w-[448px] mx-auto text-center mt-4 md:mt-10">
-            <h1 className="text-2xl md:text-3xl font-black text-[#09314F] mb-4 uppercase tracking-tight">
-              OTP VERIFICATION
-            </h1>
+            <div className="relative w-full flex items-center justify-center mb-6">
+              {/* Back Button */}
+              <button
+                onClick={() => setStep(2)}
+                className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
+              >
+                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+              </button>
+              <h1 className="text-2xl md:text-3xl font-black text-[#09314F] uppercase tracking-tight">
+                OTP VERIFICATION
+              </h1>
+            </div>
             <div className="bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-gray-100">
               <p className="text-gray-500 mb-6 text-sm md:text-base">
                 We have sent an OTP to your email: <br /><span className="font-bold text-[#09314F]">{email}</span>
@@ -1358,7 +1455,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
 
               <p className="text-gray-600 text-xs md:text-sm mb-6">
                 If you didn't get verification code yet. <br className="md:hidden" /> Resend code in{" "}
-                <span className="font-bold text-[#E33629]">{otpTimer}</span>{" "}
+                <span className="font-bold text-[#F8BD00]">{otpTimer}</span>{" "}
                 seconds
               </p>
 
@@ -1415,7 +1512,15 @@ const handleGuardianStep8Submit = (paymentMethod) => {
         {/* --- FORM SECTION --- */}
         <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] bg-[#F9FAFB] order-2 md:order-1 overflow-y-auto">
           <div className="w-full max-w-[500px] mx-auto pb-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-[#09314F] mb-2 mt-4 text-center">Student Biodata</h1>
+            <div className="relative w-full flex items-center justify-center mb-2 mt-4">
+              <button
+                onClick={() => setStep(3)}
+                className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
+              >
+                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+              </button>
+              <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Student Biodata</h1>
+            </div>
             <p className="text-center text-gray-400 mb-8 text-sm md:text-base">Filling in your student biometric data.</p>
 
             <div className="flex flex-col gap-6">
@@ -1424,7 +1529,9 @@ const handleGuardianStep8Submit = (paymentMethod) => {
                 onChange={handleFieldChange}
                 errors={biodataErrors}
                 showLabels={true}
-                onBack={() => setStep(3)}
+                activeDropdown={activeDropdown}
+                setActiveDropdown={setActiveDropdown}
+                studentIndex="student_4"
               />
 
               <button
@@ -1442,12 +1549,6 @@ const handleGuardianStep8Submit = (paymentMethod) => {
   };
 
   const renderGuardianStepFour = () => {
-    const updateStudent = (index, field, value) => {
-      const updated = [...students];
-      updated[index][field] = value;
-      setStudents(updated);
-    };
-
     const addStudent = () => {
       setStudents([...students, { firstName: "", lastName: "", identity: "" }]);
       setActiveTab(students.length);
@@ -1475,7 +1576,15 @@ const handleGuardianStep8Submit = (paymentMethod) => {
         <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] bg-white order-2 md:order-1 overflow-y-auto">
           
           <div className="w-full max-w-[500px] mx-auto pb-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-[#09314F] mb-4 mt-4 text-center">Add Student</h1>
+            <div className="relative w-full flex items-center justify-center mb-4 mt-4">
+              <button
+                onClick={() => setStep(3)}
+                className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
+              >
+                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+              </button>
+              <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Add Student</h1>
+            </div>
             <div className="bg-gray-50 p-4 rounded-xl text-center mb-6 border border-gray-100">
               <p className="text-gray-500 text-sm leading-relaxed">
                 Add your child(ren) via email or phone. They will receive a confirmation to access their information. <br />
@@ -1520,7 +1629,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
                         </div>
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-gray-500 ml-1 mb-1">Identity</label>
+                        <label className="text-xs font-bold text-gray-500 ml-1 mb-1">Email or Phone Number</label>
                         <input
                           placeholder="child@email.com or +234..."
                           value={student.identity}
@@ -1581,169 +1690,69 @@ const handleGuardianStep8Submit = (paymentMethod) => {
 
   const renderGuardianStepFive = () => {
     return (
-      <div className="w-screen h-screen flex overflow-hidden font-sans bg-[#efeded]">
-        <div className="w-1/2 h-full flex flex-col p-[60px] relative overflow-y-auto">
-          <button
-            onClick={() => setStep(4)}
-            className="absolute left-10 top-8 text-2xl"
-          >
-            <img src={ReturnArrow} alt="" />
-          </button>
+      <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row font-sans bg-white overflow-x-hidden">
+        
+        {/* --- IMAGE SECTION (Top on mobile, Right on Desktop) --- */}
+        <div className="w-full h-[250px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
+          <img 
+            src={select_student} 
+            alt="Student Biodata" 
+            className="w-full h-full object-cover" 
+          />
+          {/* Login Button (Hidden on Mobile) */}
+          <div className="hidden md:block absolute bottom-[60px] left-0">
+            <button
+              className="px-10 py-3 bg-white text-[#09314F] font-bold hover:bg-gray-100 transition-all shadow-md"
+              style={{ borderRadius: "0px 20px 20px 0px" }}
+            >
+              Login
+            </button>
+          </div>
+        </div>
 
-          <div className="w-full max-w-[500px] mx-auto">
-            <h1 className="text-3xl font-bold text-center text-[#09314F] mb-2">
-              Student Biodata
-            </h1>
-            <p className="text-center text-gray-400 mb-8 text-sm">
-              Filling in your student biometric data.
-            </p>
+        {/* --- FORM SECTION (Bottom on mobile, Left on Desktop) --- */}
+        <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] bg-[#F9FAFB] order-2 md:order-1 overflow-y-auto">
+          <div className="w-full max-w-[500px] mx-auto pb-4">
+            <div className="relative w-full flex items-center justify-center mb-4 mt-4">
+              <button
+                onClick={() => setStep(4)}
+                className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
+              >
+                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+              </button>
+              <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Student Biodata</h1>
+            </div>
+            <p className="text-center text-gray-400 mb-8 text-sm md:text-base">Filling in your student biometric data.</p>
 
             {/* Accordion for Multiple Students */}
             <div className="flex flex-col gap-4">
               {students.map((student, index) => (
                 <div
                   key={index}
-                  className="border border-gray-200 rounded-xl overflow-hidden"
+                  className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white"
                 >
                   <div
                     onClick={() => setActiveTab(index)}
-                    className="flex justify-between p-4 bg-gray-50 cursor-pointer border-b"
+                    className={`flex justify-between items-center p-4 cursor-pointer transition-colors
+                      ${activeTab === index ? "bg-[#F9F4F3] border-b" : "bg-white hover:bg-gray-50"}`}
                   >
                     <span className="font-bold text-[#09314F] uppercase text-xs">
-                      Student {index + 1}
+                      Student {index + 1} {student.firstName && <span className="text-gray-400 font-normal normal-case">— {student.firstName}</span>}
                     </span>
-                    <span>{activeTab === index ? "▲" : "▼"}</span>
+                    <span className="text-[#09314F] transform transition-transform duration-300" style={{ rotate: activeTab === index ? "180deg" : "0deg" }}>▼</span>
                   </div>
 
                   {activeTab === index && (
-                    <div className="flex flex-col gap-5 px-8 py-6 bg-white">
-                      {/* Upload */}
-                      <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-500 mt-2">
-                          Display picture{" "}
-                          <span className="text-gray-300 font-normal">
-                            (optional)
-                          </span>
-                        </label>
-                        <div className="flex items-center justify-between bg-[#F9F4F3] rounded-xl pl-4 pr-2 h-[60px] border border-dashed border-gray-300">
-                          <span className="text-gray-400 text-sm truncate max-w-[200px]">
-                            {displayPic
-                              ? displayPic.name
-                              : "Drag and drop to upload image..."}
-                          </span>
-                          <label className="cursor-pointer bg-[#1ABC9C] hover:bg-[#16a085] text-white w-10 h-10 rounded-lg flex items-center justify-center transition-colors shadow-sm">
-                            <span className="text-xl">↥</span>
-                            <input
-                              type="file"
-                              className="hidden"
-                              onChange={(e) => setDisplayPic(e.target.files[0])}
-                            />
-                          </label>
-                        </div>
-                      </div>
-
-                      {/* Names */}
-                      <div className="flex gap-4">
-                        <div className="w-1/2 flex flex-col gap-2">
-                          <label className="text-xs font-bold text-gray-500 ml-1">
-                            First Name
-                          </label>
-                          <InputField
-                            icon="👤"
-                            placeholder="Input first name"
-                            value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)}
-                          />
-                        </div>
-                        <div className="w-1/2 flex flex-col gap-2">
-                          <label className="text-xs font-bold text-gray-500 ml-1">
-                            Last Name
-                          </label>
-                          <InputField
-                            icon="👤"
-                            placeholder="Input last name"
-                            value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      {/* DOB & Gender */}
-                      <div className="flex gap-4">
-                        <div className="w-1/2 flex flex-col gap-2">
-                          <label className="text-xs font-bold text-gray-500 ml-1">
-                            Date of Birth
-                          </label>
-                          <InputField
-                            icon="📅"
-                            type="date"
-                            value={dob}
-                            onChange={(e) => setDob(e.target.value)}
-                          />
-                        </div>
-                        <div className="w-1/2 flex flex-col gap-2">
-                          <label className="text-xs font-bold text-gray-500 ml-1">
-                            Gender
-                          </label>
-                          <div className="flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] w-full relative">
-                            <span className="text-gray-400 text-lg mr-3">
-                              ⚥
-                            </span>
-                            <select
-                              value={gender}
-                              onChange={(e) => setGender(e.target.value)}
-                              className="bg-transparent w-full outline-none text-gray-700 font-medium appearance-none cursor-pointer"
-                            >
-                              <option value="" disabled>
-                                Select gender
-                              </option>
-                              <option value="Male">Male</option>
-                              <option value="Female">Female</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Dept & Location */}
-                      <div className="flex gap-4">
-                        <div className="w-1/2 flex flex-col gap-2">
-                          <label className="text-xs font-bold text-gray-500 ml-1">
-                            Department
-                          </label>
-                          <div className="flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] w-full relative">
-                            <span className="text-gray-400 text-lg mr-3">
-                              🎓
-                            </span>
-                            <select
-                              value={department}
-                              onChange={(e) => setDepartment(e.target.value)}
-                              className="bg-transparent w-full outline-none text-gray-700 font-medium appearance-none cursor-pointer"
-                            >
-                              <option value="" disabled>
-                                Select dept...
-                              </option>
-                              <option value="Science">Science</option>
-                              <option value="Arts">Arts</option>
-                              <option value="Commercial">Commercial</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div className="w-1/2 flex flex-col gap-2">
-                          <label className="text-xs font-bold text-gray-500 ml-1">
-                            Location
-                          </label>
-                          <InputField
-                            icon="📍"
-                            placeholder="Input location..."
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="mt-2 text-[#007BFF] text-xs flex items-center gap-1 cursor-pointer">
-                        <span className="text-lg">⊕</span> Use current location
-                        on map.
-                      </div>
+                    <div className="flex flex-col gap-5 px-6 py-8 md:px-8">
+                      <StudentBiodataFields
+                        student={student}
+                        onChange={(field, value) => updateStudent(index, field, value)}
+                        errors={guardianErrors[`student_${index}`] || {}}
+                        showLabels={true}
+                        studentIndex={index}
+                        activeDropdown={activeDropdown}
+                        setActiveDropdown={setActiveDropdown}
+                      />
                     </div>
                   )}
                 </div>
@@ -1751,8 +1760,8 @@ const handleGuardianStep8Submit = (paymentMethod) => {
             </div>
 
             <button
-            onClick={handleStep5Submit}
-              className="w-full h-[60px] text-white rounded-xl font-bold mt-10 shadow-lg"
+              onClick={handleStep5Submit}
+              className="w-full h-[55px] md:h-[60px] text-white rounded-xl font-bold mt-10 shadow-lg transition-all active:scale-95"
               style={{
                 background: "linear-gradient(90deg, #0F2C45 0%, #A92429 100%)",
               }}
@@ -1761,110 +1770,84 @@ const handleGuardianStep8Submit = (paymentMethod) => {
             </button>
           </div>
         </div>
-
-        {/* Right Side Image (matching your screenshot) */}
-        <div className="w-1/2 h-full">
-          <img
-            src={select_student}
-            alt="Entry"
-            className="w-full h-full object-cover"
-          />
-        </div>
       </div>
     );
   };
 
   const renderStudentStepFive = () => {
+    const examOptions = ["JAMB", "WAEC", "NECO", "GCE"];
+
     return (
-      <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row bg-white font-sans overflow-x-hidden">
+      <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row bg-[#F4F4F4] font-sans overflow-x-hidden">
         
-        {/* --- IMAGE SECTION (Top on mobile, Right on Desktop) --- */}
-        <div className="w-full h-[250px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
+        {/* --- IMAGE SECTION (Right on Desktop, Top on Mobile) --- */}
+        <div className="w-full h-[250px] md:w-1/2 md:h-full relative order-1 md:order-2">
           <div 
             className="w-full h-full bg-cover bg-center"
             style={{ backgroundImage: `url(${otp_img_student})` }}
           />
-          {/* Back Button */}
-          <button
-            onClick={() => setStep(4)}
-            className="absolute left-6 top-6 md:left-10 md:top-8 bg-white/80 backdrop-blur-sm md:bg-transparent w-10 h-10 md:w-auto md:h-auto rounded-full flex items-center justify-center hover:text-gray-500 transition-all shadow-md md:shadow-none z-20"
-          >
-            <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
-          </button>
         </div>
 
-        {/* --- FORM SECTION (Bottom on mobile, Left on Desktop) --- */}
+        {/* --- FORM SECTION (Left on Desktop, Bottom on Mobile) --- */}
         <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] order-2 md:order-1 overflow-y-auto">
-          <div className="w-full max-w-[500px] mx-auto flex flex-col h-full">
-            <h1 className="text-2xl md:text-3xl font-bold text-[#09314F] mb-4 text-left md:text-center mt-4">
-              Select Training
-            </h1>
+          <div className="w-full max-w-[500px] mx-auto flex flex-col h-full justify-center">
             
-            <p className="text-gray-600 text-sm md:text-base mb-8 text-left md:text-center leading-relaxed">
-              Select the examinations you're about to write, you have the option of selection more than 1 examination.
-            </p>
-
-            <div className="flex flex-col gap-4 mb-auto">
-              {/* Dynamic Exams List */}
-              {visibleExams.map((exam) => {
-                const isSelected = selectedExams.includes(exam);
-                return (
-                  <div
-                    key={exam}
-                    className={`group relative w-full h-[55px] md:h-[60px] rounded-xl font-bold flex items-center px-6 transition-all duration-300 shadow-sm cursor-pointer
-                      ${isSelected 
-                        ? "bg-[#86D294] text-white" 
-                        : "bg-[#FDF2F2] text-[#121D24] hover:bg-[#F9EAEA]"
-                      }`}
-                    onClick={() => toggleExam(exam)}
-                  >
-                    <span className="flex-1">{exam}</span>
-                    <div className="flex items-center gap-3">
-                      {isSelected && <span className="text-sm">✓</span>}
-                      {exam !== "JAMB" && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeVisibleExam(exam);
-                          }}
-                          className={`text-lg p-1 hover:text-red-500 transition-colors ${isSelected ? "text-white/80" : "text-gray-400"}`}
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Add another button - conditional visibility */}
-              {visibleExams.length < 4 && (
-                <button
-                  onClick={addNextExam}
-                  className="w-full h-[55px] md:h-[60px] border-2 border-[#121D24]/30 text-[#121D24] font-bold rounded-xl flex items-center px-6 hover:bg-gray-50 transition-all gap-2"
-                >
-                  <span className="flex-1 text-left">Add another</span>
-                  <span className="text-2xl font-light text-[#121D24]">+</span>
-                </button>
-              )}
+            {/* Header with Back Button */}
+            <div className="relative w-full flex items-center justify-center mb-8">
+              <button
+                onClick={() => setStep(4)}
+                className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
+              >
+                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+              </button>
+              <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Select Training</h1>
             </div>
 
-            {/* Error Message */}
-            {examError && (
-              <p className="text-red-500 text-xs font-bold mt-4 mb-2 text-center">
-                Select at least 1 examination
+            {/* White Card */}
+            <div className="bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center">
+              <p className="text-gray-500 text-xs md:text-sm mb-10 leading-relaxed text-center max-w-[340px]">
+                Select the examinations you're about to write, you have the option of selection more than 1 examination.
               </p>
-            )}
 
-            <button
-              onClick={handleStep5Submit}
-              className="w-full h-[55px] md:h-[60px] text-white rounded-xl font-bold mt-8 shadow-xl transition-all active:scale-95 flex items-center justify-center"
-              style={{
-                background: "linear-gradient(90deg, #09314F 0%, #E33629 100%)",
-              }}
-            >
-              Continue
-            </button>
+              {/* 2x2 Grid of Exams */}
+              <div className="grid grid-cols-2 gap-4 w-full mb-10">
+                {examOptions.map((exam) => {
+                  const isSelected = selectedExams.includes(exam);
+                  return (
+                    <button
+                      key={exam}
+                      onClick={() => toggleExam(exam)}
+                      className={`h-[50px] md:h-[55px] rounded-lg font-bold flex items-center justify-between px-5 transition-all duration-300
+                        ${isSelected 
+                          ? "bg-[#76D287] text-white shadow-md shadow-green-100" 
+                          : "bg-[#D1D5DB] text-[#4B5563] hover:bg-gray-400"
+                        }`}
+                    >
+                      <span className="text-sm uppercase tracking-wide">{exam}</span>
+                      {isSelected && <span className="text-sm">✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Error Message */}
+              {examError && (
+                <p className="text-red-500 text-xs font-bold mb-4">
+                  Select at least 1 examination
+                </p>
+              )}
+
+              {/* Continue Button */}
+              <button
+                onClick={handleStep5Submit}
+                className="w-full h-[55px] md:h-[60px] text-white rounded-xl font-bold shadow-xl transition-all active:scale-95 flex items-center justify-center"
+                style={{
+                  background: "linear-gradient(90deg, #09314F 0%, #E33629 100%)",
+                }}
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1874,54 +1857,62 @@ const handleGuardianStep8Submit = (paymentMethod) => {
 const renderGuardianStepSix = () => {
   const examOptions = ["JAMB", "WAEC", "NECO", "GCE"];
 
-  const updateStudentTraining = (studentIdx, slot, value) => {
+  const toggleStudentExam = (studentIdx, exam) => {
     const updated = [...students];
     if (!updated[studentIdx].trainings) {
-      updated[studentIdx].trainings = ["", "", "", ""];
+      updated[studentIdx].trainings = [];
     }
-    updated[studentIdx].trainings[slot] = value;
+    
+    const currentTrainings = updated[studentIdx].trainings.filter(t => t !== "");
+    if (currentTrainings.includes(exam)) {
+      updated[studentIdx].trainings = currentTrainings.filter(t => t !== exam);
+    } else {
+      updated[studentIdx].trainings = [...currentTrainings, exam];
+    }
     setStudents(updated);
   };
 
   return (
-    <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row bg-white font-sans overflow-x-hidden">
+    <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row bg-[#F4F4F4] font-sans overflow-x-hidden">
       
-      {/* --- IMAGE SECTION (Top on mobile, Right on Desktop) --- */}
+      {/* --- IMAGE SECTION (Right on Desktop, Top on Mobile) --- */}
       <div className="w-full h-[250px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
         <div 
           className="w-full h-full bg-cover bg-center"
           style={{ backgroundImage: `url(${signup_img})` }}
         />
-        {/* Back Button */}
-        <button
-          onClick={() => setStep(5)}
-          className="absolute left-6 top-6 md:left-10 md:top-8 bg-white/80 backdrop-blur-sm md:bg-transparent w-10 h-10 md:w-auto md:h-auto rounded-full flex items-center justify-center hover:text-gray-500 transition-all shadow-md md:shadow-none z-20"
-        >
-          <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
-        </button>
       </div>
 
-      {/* --- FORM SECTION (Bottom on mobile, Left on Desktop) --- */}
+      {/* --- FORM SECTION (Left on Desktop, Bottom on Mobile) --- */}
       <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] order-2 md:order-1 overflow-y-auto">
-        <div className="w-full max-w-[500px] mx-auto flex flex-col h-full">
-          <h1 className="text-2xl md:text-3xl font-bold text-[#09314F] mb-4 text-left md:text-center mt-4">
-            Select Training
-          </h1>
+        <div className="w-full max-w-[500px] mx-auto flex flex-col h-full justify-center">
+          
+          {/* Header with Back Button */}
+          <div className="relative w-full flex items-center justify-center mb-8">
+            <button
+              onClick={() => setStep(5)}
+              className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
+            >
+              <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+            </button>
+            <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Select Training</h1>
+          </div>
 
-          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
-            <p className="text-gray-400 text-xs md:text-sm mb-8 leading-relaxed text-left md:text-center">
-              Select the examinations you're about to write, you have the option of selection more than 1 examination (Student get to select the subjects on their on boarding for each examination).
+          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 italic">
+            <p className="text-gray-400 text-xs md:text-sm mb-10 leading-relaxed text-center">
+              Select the examinations you're about to write, you have the option of selection more than 1 examination.
             </p>
 
             <div className="flex flex-col gap-4 mb-10">
               {students.map((student, index) => (
-                <div key={index} className="border-b border-gray-100 pb-4">
+                <div key={index} className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
                   <div
                     onClick={() => setActiveTab(activeTab === index ? null : index)}
-                    className="flex justify-between items-center py-2 cursor-pointer"
+                    className={`flex justify-between items-center p-4 cursor-pointer transition-colors
+                      ${activeTab === index ? "bg-[#F9F4F3] border-b" : "bg-white hover:bg-gray-50"}`}
                   >
                     <span className="font-bold text-[#09314F] text-xs md:text-sm uppercase">
-                      Student {index + 1}
+                      Student {index + 1} {student.firstName && <span className="text-gray-400 font-normal normal-case">— {student.firstName}</span>}
                     </span>
                     <span className={`transition-transform flex items-center text-[#09314F] ${activeTab === index ? 'rotate-180' : ''}`}>
                       ▼
@@ -1929,26 +1920,26 @@ const renderGuardianStepSix = () => {
                   </div>
 
                   {activeTab === index && (
-                    <div className="flex flex-wrap gap-3 mt-4 animate-fadeIn">
-                      {[0, 1, 2, 3].map((slot) => (
-                        <div key={slot} className="relative w-full sm:w-auto">
-                          <select
-                            className="appearance-none bg-[#F9F4F3] border border-gray-200 rounded-lg px-3 py-2.5 pr-8 text-xs font-bold text-gray-600 outline-none focus:border-[#09314F] w-full"
-                            value={student.trainings?.[slot] || ""}
-                            onChange={(e) => updateStudentTraining(index, slot, e.target.value)}
-                          >
-                            <option value="">- Select Exam -</option>
-                            {examOptions.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="absolute right-3 top-3 pointer-events-none text-[10px] text-gray-400">
-                            ▼
-                          </div>
-                        </div>
-                      ))}
+                    <div className="p-6 bg-white">
+                      <div className="grid grid-cols-2 gap-4">
+                        {examOptions.map((exam) => {
+                          const isSelected = student.trainings?.includes(exam);
+                          return (
+                            <button
+                              key={exam}
+                              onClick={() => toggleStudentExam(index, exam)}
+                              className={`h-[45px] md:h-[50px] rounded-lg font-bold flex items-center justify-between px-4 transition-all duration-300
+                                ${isSelected 
+                                  ? "bg-[#76D287] text-white shadow-md shadow-green-100" 
+                                  : "bg-[#D1D5DB] text-[#4B5563] hover:bg-gray-400"
+                                }`}
+                            >
+                              <span className="text-[11px] md:text-xs uppercase tracking-wide">{exam}</span>
+                              {isSelected && <span className="text-xs">✓</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1957,7 +1948,7 @@ const renderGuardianStepSix = () => {
 
             <button
               onClick={handleStep6Submit}
-              className="w-full h-[55px] md:h-[60px] text-white rounded-xl font-bold shadow-lg transition-all active:scale-95"
+              className="w-full h-[55px] md:h-[60px] text-white rounded-xl font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center"
               style={{ background: 'linear-gradient(90deg, #09314F 0%, #E33629 100%)' }}
             >
               Continue
@@ -1979,21 +1970,20 @@ const renderGuardianStepSix = () => {
             className="w-full h-full bg-cover bg-center"
             style={{ backgroundImage: `url(${select_student})` }}
           />
-          {/* Back Button */}
-          <button
-            onClick={() => setStep(5)}
-            className="absolute left-6 top-6 md:left-10 md:top-8 bg-white/80 backdrop-blur-sm md:bg-transparent w-10 h-10 md:w-auto md:h-auto rounded-full flex items-center justify-center hover:text-gray-500 transition-all shadow-md md:shadow-none z-20"
-          >
-            <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
-          </button>
         </div>
 
         {/* --- FORM SECTION (Bottom on mobile, Left on Desktop) --- */}
         <div className="w-full md:w-1/2 h-full flex flex-col px-4 py-10 lg:px-[80px] lg:py-[60px] order-2 md:order-1 overflow-y-auto">
           <div className="w-full max-w-[550px] mx-auto flex flex-col h-full">
-            <h1 className="text-2xl md:text-3xl font-black text-[#09314F] text-left md:text-center mb-2 mt-4">
-              Subject Selection
-            </h1>
+            <div className="relative w-full flex items-center justify-center mb-2 mt-4">
+              <button
+                onClick={() => setStep(5)}
+                className="absolute left-0 p-2 hover:bg-gray-100 rounded-full transition-all z-10"
+              >
+                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+              </button>
+              <h1 className="text-2xl md:text-3xl font-black text-[#09314F]">Subject Selection</h1>
+            </div>
             <p className="text-gray-400 text-[11px] md:text-xs text-left md:text-center mb-8">
               Select your preferred subjects for your examination.
             </p>
@@ -2019,41 +2009,16 @@ const renderGuardianStepSix = () => {
 
                     {/* The Dropdown Trigger Area */}
                     <div className="relative flex justify-center">
-                      <button
-                        onClick={() =>
-                          setActiveDropdown(
-                            activeDropdown === exam ? null : exam,
-                          )
-                        }
-                        className="bg-[#D1D5DB] text-[9px] md:text-[10px] px-2 md:px-3 py-2 rounded flex items-center gap-2 truncate max-w-[90px] md:max-w-[120px]"
-                      >
-                        {selectedSubjects[exam]?.length > 0
-                          ? selectedSubjects[exam].join(", ")
-                          : "Select..."}
-                      </button>
-
-                  
-                      {activeDropdown === exam && (
-                        <div className="absolute top-full mt-1 z-50 w-[130px] md:w-[140px] max-h-[180px] overflow-y-auto bg-white shadow-2xl border border-gray-100 rounded-lg p-1 custom-scrollbar">
-                          {ALL_SUBJECTS.map((sub) => {
-                            const isPicked =
-                              selectedSubjects[exam]?.includes(sub);
-                            return (
-                              <div
-                                key={sub}
-                                onClick={() => toggleSubject(exam, sub)}
-                                className={`cursor-pointer p-2 mb-1 rounded text-[10px] font-bold transition-colors ${
-                                  isPicked
-                                    ? "bg-[#86D294] text-white"
-                                    : "bg-[#F9EAEA] text-gray-600"
-                                }`}
-                              >
-                                {sub}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                      <CustomDropdown
+                        isSmall={true}
+                        multiSelect={true}
+                        placeholder="Select..."
+                        value={selectedSubjects[exam]}
+                        options={ALL_SUBJECTS}
+                        onChange={(sub) => toggleSubject(exam, sub)}
+                        isOpen={activeDropdown === exam}
+                        onToggle={() => setActiveDropdown(activeDropdown === exam ? null : exam)}
+                      />
                     </div>
 
                     {/* Limiter Counter */}
@@ -2094,18 +2059,20 @@ const renderGuardianStepSix = () => {
             className="w-full h-full bg-cover bg-center"
             style={{ backgroundImage: `url(${signup_img})` }}
           />
-          <button
-            onClick={() => setStep(6)}
-            className="absolute left-6 top-6 md:left-10 md:top-8 bg-white/80 backdrop-blur-sm md:bg-transparent w-10 h-10 md:w-auto md:h-auto rounded-full flex items-center justify-center hover:text-gray-500 transition-all shadow-md md:shadow-none z-20"
-          >
-            <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
-          </button>
         </div>
 
         {/* --- FORM SECTION --- */}
         <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] order-2 md:order-1 overflow-y-auto">
           <div className="w-full max-w-[550px] mx-auto flex flex-col h-full">
-            <h1 className="text-2xl md:text-3xl font-bold text-[#09314F] text-left md:text-center mt-4 mb-2">Training Duration</h1>
+            <div className="relative w-full flex items-center justify-center mb-2 mt-4">
+              <button
+                onClick={() => setStep(6)}
+                className="absolute left-0 p-2 hover:bg-gray-100 rounded-full transition-all z-10"
+              >
+                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+              </button>
+              <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Training Duration</h1>
+            </div>
             <p className="text-gray-400 text-[11px] md:text-xs text-left md:text-center mb-8">Select your preferred training duration for your examination.</p>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-visible mb-auto">
@@ -2120,31 +2087,15 @@ const renderGuardianStepSix = () => {
                   <div className="font-black text-[#09314F] text-[10px] md:text-xs uppercase whitespace-nowrap overflow-hidden text-ellipsis px-1">{exam}</div>
                   
                   <div className="relative flex justify-center">
-                    <button 
-                      onClick={() => setActiveDropdown(activeDropdown === exam ? null : exam)}
-                      className="bg-[#D1D5DB] text-[9px] md:text-[10px] px-2 md:px-4 py-2 rounded font-bold w-full max-w-[80px] md:max-w-[100px] truncate"
-                    >
-                      {selectedDurations[exam] || "Select"}
-                    </button>
-
-                    {activeDropdown === exam && (
-                      <div className="absolute top-full mt-1 z-50 w-[100px] md:w-[110px] bg-white shadow-2xl border border-gray-100 rounded-lg p-1">
-                        {DURATIONS.map(dur => (
-                          <div 
-                            key={dur}
-                            onClick={() => {
-                              setSelectedDurations({...selectedDurations, [exam]: dur});
-                              setActiveDropdown(null);
-                            }}
-                            className={`cursor-pointer p-2 mb-1 rounded text-[10px] font-bold transition-colors ${
-                              selectedDurations[exam] === dur ? 'bg-[#86D294] text-white' : 'bg-[#F9EAEA] text-gray-600'
-                            }`}
-                          >
-                            {dur}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <CustomDropdown
+                      isSmall={true}
+                      placeholder="Select"
+                      value={selectedDurations[exam]}
+                      options={DURATIONS}
+                      onChange={(dur) => setSelectedDurations({...selectedDurations, [exam]: dur})}
+                      isOpen={activeDropdown === `duration_${exam}`}
+                      onToggle={() => setActiveDropdown(activeDropdown === `duration_${exam}` ? null : `duration_${exam}`)}
+                    />
                   </div>
 
                   <div className="font-black text-[#09314F] text-[10px] md:text-xs">
@@ -2154,10 +2105,10 @@ const renderGuardianStepSix = () => {
               ))}
 
               <div className="p-6 pt-10">
-                <button className="w-full h-[55px] md:h-[60px] text-white rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-all"
+                <button className="w-full h-[55px] md:h-[60px] text-white rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
                   onClick={handleStudentStep7Submit}
                   style={{ background: 'linear-gradient(90deg, #09314F 0%, #E33629 100%)' }}>
-                  Continue
+                  Continue - ₦{calculateStudentTotal()}
                 </button>
               </div>
             </div>
@@ -2203,18 +2154,20 @@ const renderGuardianStepSeven = () => {
           className="w-full h-full bg-cover bg-center"
           style={{ backgroundImage: `url(${signup_img})` }}
         />
-        <button 
-          onClick={() => setStep(6)} 
-          className="absolute left-6 top-6 md:left-10 md:top-8 bg-white/80 backdrop-blur-sm md:bg-transparent w-10 h-10 md:w-auto md:h-auto rounded-full flex items-center justify-center hover:text-gray-500 transition-all shadow-md md:shadow-none z-20"
-        >
-          <img src={ReturnArrow} alt="Back" className="w-5 h-5 md:w-6 md:h-6" />
-        </button>
       </div>
 
       {/* --- FORM SECTION --- */}
       <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] order-2 md:order-1 overflow-y-auto">
         <div className="w-full max-w-[500px] mx-auto flex flex-col h-full">
-          <h1 className="text-2xl md:text-3xl font-bold text-[#09314F] text-left md:text-center mt-4 mb-2">Select Duration</h1>
+          <div className="relative w-full flex items-center justify-center mb-2 mt-4">
+            <button 
+              onClick={() => setStep(6)} 
+              className="absolute left-0 p-2 hover:bg-gray-100 rounded-full transition-all z-10"
+            >
+              <img src={ReturnArrow} alt="Back" className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+            <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Select Duration</h1>
+          </div>
           <p className="text-gray-400 text-[10px] md:text-xs text-left md:text-center mb-8">
             Select your preferred training duration for each student.
           </p>
@@ -2247,19 +2200,16 @@ const renderGuardianStepSeven = () => {
                           </span>
                         </div>
                          
-                        <div className="relative">
-                          <select 
-                            value={student.durations?.[exam] || DURATIONS[0]}
-                            onChange={(e) => updateStudentDuration(idx, exam, e.target.value)}
-                            className="appearance-none bg-white border border-gray-200 rounded-lg py-2 px-3 pr-8 text-[11px] font-bold outline-none text-[#09314F] cursor-pointer shadow-sm"
-                          >
-                            {DURATIONS.map(d => (
-                              <option key={d} value={d}>{d}</option>
-                            ))}
-                          </select>
-                          <div className="absolute right-2 top-2.5 pointer-events-none text-[8px] text-gray-400">
-                            ▼
-                          </div>
+                        <div className="flex-1 max-w-[120px]">
+                          <CustomDropdown
+                            isSmall={true}
+                            placeholder="Select"
+                            value={student.durations?.[exam]}
+                            options={DURATIONS}
+                            onChange={(dur) => updateStudentDuration(idx, exam, dur)}
+                            isOpen={activeDropdown === `guardian_dur_${idx}_${exam}`}
+                            onToggle={() => setActiveDropdown(activeDropdown === `guardian_dur_${idx}_${exam}` ? null : `guardian_dur_${idx}_${exam}`)}
+                          />
                         </div>
                       </div>
                     ))}
@@ -2301,19 +2251,38 @@ const renderStudentStepEight = () => {
   };
 
   return (
-    <div className="w-screen h-screen flex overflow-hidden font-sans bg-white">
-      {/* Left Side - Payment Selection */}
-      <div className="w-1/2 h-full flex flex-col p-[60px] relative justify-center">
-        <button 
-          onClick={() => setStep(7)} 
-          className="absolute left-10 top-16 text-2xl hover:opacity-70 transition-all"
-        >
-          ←
-        </button>
+    <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row font-sans bg-white overflow-x-hidden">
+      {/* --- IMAGE SECTION (Top on mobile, Right on Desktop) --- */}
+      <div className="w-full h-[192px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
+        <img 
+          src={otp_img_student} 
+          alt="Payment" 
+          className="w-full h-full object-cover" 
+        />
+        {/* Login Button (Hidden on Mobile) */}
+        <div className="hidden md:block absolute bottom-[60px] left-0">
+          <button
+            className="px-10 py-3 bg-white text-[#09314F] font-bold hover:bg-gray-100 transition-all shadow-md"
+            style={{ borderRadius: "0px 20px 20px 0px" }}
+          >
+            Login
+          </button>
+        </div>
+      </div>
 
-        <div className="w-full max-w-[400px] mx-auto">
-          <h1 className="text-3xl font-bold text-[#09314F] mb-2">Payment Method</h1>
-          <p className="text-gray-400 text-sm mb-10">Select a preferred method of payment</p>
+      {/* --- CONTENT SECTION --- */}
+      <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] bg-[#F9FAFB] order-2 md:order-1 overflow-y-auto">
+        <div className="w-full max-w-[448px] mx-auto text-center md:my-auto">
+          <div className="relative w-full flex items-center justify-center mb-6">
+            <button 
+              onClick={() => setStep(7)} 
+              className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
+            >
+              <img src={ReturnArrow} alt="Back" className="h-6 w-6" />
+            </button>
+            <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Payment Method</h1>
+          </div>
+          <p className="text-gray-400 text-sm mb-8">Select a preferred method of payment</p>
 
           <div className="flex flex-col gap-4 mb-8">
             {paymentMethods.map((method) => (
@@ -2334,21 +2303,12 @@ const renderStudentStepEight = () => {
 
           <button
             onClick={handlePaymentSubmit}
-            className="w-full h-[60px] text-white rounded-xl font-bold shadow-lg transition-all active:scale-95"
+            className="w-full h-[60px] text-white rounded-xl font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
             style={{ background: 'linear-gradient(90deg, #0F2C45 0%, #A92429 100%)' }}
           >
-            Continue - ₦2,600
+            Continue - ₦{calculateStudentTotal()}
           </button>
         </div>
-      </div>
-
-      {/* Right Side - Student Image */}
-      <div className="w-1/2 h-full">
-        <img 
-          src={otp_img_student} 
-          alt="Payment" 
-          className="w-full h-full object-cover" 
-        />
       </div>
     </div>
   );
@@ -2389,19 +2349,38 @@ const renderGuardianStepEight = () => {
   };
 
   return (
-    <div className="w-screen h-screen flex overflow-hidden font-sans bg-white">
-      {/* Left Side - Payment Selection */}
-      <div className="w-1/2 h-full flex flex-col p-[60px] relative justify-center">
-        <button 
-          onClick={() => setStep(7)} 
-          className="absolute left-10 top-16 text-2xl hover:opacity-70 transition-all"
-        >
-          ←
-        </button>
+    <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row font-sans bg-white overflow-x-hidden">
+      {/* --- IMAGE SECTION (Top on mobile, Right on Desktop) --- */}
+      <div className="w-full h-[192px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
+        <img 
+          src={select_student} 
+          alt="Payment" 
+          className="w-full h-full object-cover" 
+        />
+        {/* Login Button (Hidden on Mobile) */}
+        <div className="hidden md:block absolute bottom-[60px] left-0">
+          <button
+            className="px-10 py-3 bg-white text-[#09314F] font-bold hover:bg-gray-100 transition-all shadow-md"
+            style={{ borderRadius: "0px 20px 20px 0px" }}
+          >
+            Login
+          </button>
+        </div>
+      </div>
 
-        <div className="w-full max-w-[400px] mx-auto">
-          <h1 className="text-3xl font-bold text-[#09314F] mb-2">Payment Method</h1>
-          <p className="text-gray-400 text-sm mb-10">Select a preferred method of payment</p>
+      {/* --- CONTENT SECTION --- */}
+      <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] bg-[#F9FAFB] order-2 md:order-1 overflow-y-auto">
+        <div className="w-full max-w-[448px] mx-auto text-center md:my-auto">
+          <div className="relative w-full flex items-center justify-center mb-6">
+            <button 
+              onClick={() => setStep(7)} 
+              className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
+            >
+              <img src={ReturnArrow} alt="Back" className="h-6 w-6" />
+            </button>
+            <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Payment Method</h1>
+          </div>
+          <p className="text-gray-400 text-sm mb-8">Select a preferred method of payment</p>
 
           <div className="flex flex-col gap-4 mb-8">
             {paymentMethods.map((method) => (
@@ -2429,15 +2408,6 @@ const renderGuardianStepEight = () => {
           </button>
         </div>
       </div>
-
-      {/* Right Side - Guardian Image */}
-      <div className="w-1/2 h-full">
-        <img 
-          src={select_student} 
-          alt="Payment" 
-          className="w-full h-full object-cover" 
-        />
-      </div>
     </div>
   );
 };
@@ -2445,19 +2415,28 @@ const renderGuardianStepEight = () => {
 // ========== STEP 9: SUCCESS SCREEN ==========
 const renderStudentSuccessScreen = () => {
   return (
-    <div className="w-screen h-screen flex overflow-hidden font-sans bg-white">
-      {/* Left Side - Success Message */}
-      <div className="w-1/2 h-full flex flex-col p-[60px] relative justify-center items-center">
-        <div className="w-full max-w-[400px] text-center">
+    <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row font-sans bg-white overflow-x-hidden">
+      {/* --- IMAGE SECTION (Top on mobile, Right on Desktop) --- */}
+      <div className="w-full h-[250px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
+        <img 
+          src={otp_img_student} 
+          alt="Success" 
+          className="w-full h-full object-cover" 
+        />
+      </div>
+
+      {/* --- CONTENT SECTION --- */}
+      <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] bg-white order-2 md:order-1 overflow-y-auto">
+        <div className="w-full max-w-[400px] mx-auto text-center md:my-auto">
           {/* Success Icon */}
-          <div className="w-24 h-24 bg-[#09314F] rounded-full flex items-center justify-center mx-auto mb-8">
-            <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-20 h-20 md:w-24 md:h-24 bg-[#09314F] rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8">
+            <svg className="w-10 h-10 md:w-12 md:h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
           </div>
 
           {/* Success Title */}
-          <h1 className="text-3xl font-bold text-[#09314F] mb-4">Payment Successful!</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#09314F] mb-4">Payment Successful!</h1>
 
           {/* Access Info */}
           <p className="text-gray-500 text-sm mb-2">You now have access for</p>
@@ -2475,21 +2454,12 @@ const renderStudentSuccessScreen = () => {
               // Navigate to dashboard
               console.log('Going to dashboard...');
             }}
-            className="w-full h-[60px] text-white rounded-xl font-bold shadow-lg transition-all active:scale-95"
+            className="w-full h-[55px] md:h-[60px] text-white rounded-xl font-bold shadow-lg transition-all active:scale-95"
             style={{ background: 'linear-gradient(90deg, #0F2C45 0%, #A92429 100%)' }}
           >
             Go To Dashboard
           </button>
         </div>
-      </div>
-
-      {/* Right Side - Student Success Image */}
-      <div className="w-1/2 h-full">
-        <img 
-          src={otp_img_student} 
-          alt="Success" 
-          className="w-full h-full object-cover" 
-        />
       </div>
     </div>
   );
@@ -2497,19 +2467,28 @@ const renderStudentSuccessScreen = () => {
 
 const renderGuardianSuccessScreen = () => {
   return (
-    <div className="w-screen h-screen flex overflow-hidden font-sans bg-white">
-      {/* Left Side - Success Message */}
-      <div className="w-1/2 h-full flex flex-col p-[60px] relative justify-center items-center">
-        <div className="w-full max-w-[400px] text-center">
+    <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row font-sans bg-white overflow-x-hidden">
+      {/* --- IMAGE SECTION (Top on mobile, Right on Desktop) --- */}
+      <div className="w-full h-[250px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
+        <img 
+          src={select_student} 
+          alt="Success" 
+          className="w-full h-full object-cover" 
+        />
+      </div>
+
+      {/* --- CONTENT SECTION --- */}
+      <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] bg-white order-2 md:order-1 overflow-y-auto">
+        <div className="w-full max-w-[400px] mx-auto text-center md:my-auto">
           {/* Success Icon */}
-          <div className="w-24 h-24 bg-[#09314F] rounded-full flex items-center justify-center mx-auto mb-8">
-            <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-20 h-20 md:w-24 md:h-24 bg-[#09314F] rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8">
+            <svg className="w-10 h-10 md:w-12 md:h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
           </div>
 
           {/* Success Title */}
-          <h1 className="text-3xl font-bold text-[#09314F] mb-4">Payment Successful!</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#09314F] mb-4">Payment Successful!</h1>
 
           {/* Access Info */}
           <p className="text-gray-500 text-sm mb-4">You now have access for</p>
@@ -2531,21 +2510,12 @@ const renderGuardianSuccessScreen = () => {
             onClick={() => {
               console.log('Going to dashboard...');
             }}
-            className="w-full h-[60px] text-white rounded-xl font-bold shadow-lg transition-all active:scale-95"
+            className="w-full h-[55px] md:h-[60px] text-white rounded-xl font-bold shadow-lg transition-all active:scale-95"
             style={{ background: 'linear-gradient(90deg, #0F2C45 0%, #A92429 100%)' }}
           >
             Go To Dashboard
           </button>
         </div>
-      </div>
-
-      {/* Right Side - Guardian Success Image */}
-      <div className="w-1/2 h-full">
-        <img 
-          src={select_student} 
-          alt="Success" 
-          className="w-full h-full object-cover" 
-        />
       </div>
     </div>
   );
