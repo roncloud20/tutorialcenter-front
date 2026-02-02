@@ -7,8 +7,7 @@ import Step_two_img from "../../assets/images/step_2.jpg";
 import otp_img_student from "../../assets/images/otpStudentpic.jpg";
 import otp_img_parent from "../../assets/images/otpparent.jpg";
 import select_student from "../../assets/images/add_student.png";
-
-
+import SplashScreen from "../../components/public/SplashScreen";
 
 const InputField = ({
   icon,
@@ -411,6 +410,15 @@ const SignUp = () => {
   const [step, setStep] = useState(() => {
     return decrypt(sessionStorage.getItem("_tc_step")) || 1;
   });
+
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const [userRole, setUserRole] = useState(() => {
     return decrypt(sessionStorage.getItem("_tc_role")) || null;
@@ -1165,6 +1173,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
             {/* Login Button */}
             <div className="hidden md:block absolute bottom-[60px] left-0">
               <button
+              onClick={() => navigate("/login")}
                 className="px-8 py-3 bg-white text-[#09314F] font-bold hover:bg-gray-100 transition-all shadow-md"
                 style={{ borderRadius: "0px 20px 20px 0px" }}
               >
@@ -1200,6 +1209,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
         >
           <div className="absolute bottom-[60px] left-0">
             <button
+              onClick={() => navigate("/login")}
               className="px-10 py-3 bg-white text-[#09314F] font-bold hover:bg-gray-100 transition-all shadow-md"
               style={{ borderRadius: "0px 20px 20px 0px" }}
             >
@@ -1253,12 +1263,6 @@ const handleGuardianStep8Submit = (paymentMethod) => {
               </div>
             </div>
 
-            {/* DESKTOP ONLY: Role indicator */}
-            <div className="hidden md:block text-center border-b-2 border-[#09314F] pb-2 mb-8">
-              <span className="text-[#09314F] font-bold text-base md:text-lg uppercase tracking-widest">
-                {userRole === "student" ? "Student" : "Guardian / Parent"}
-              </span>
-            </div>
 
             {/* Input Card */}
             <div className="flex flex-col gap-4 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 mb-6">
@@ -1281,7 +1285,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 md:hidden">
                 <label className="text-xs font-bold text-gray-600 ml-1">User Type</label>
                 <div className="flex items-center bg-[#F0F0F0] rounded-xl px-4 h-[55px] border border-gray-200 cursor-not-allowed">
                   {/* <span className="text-gray-400 mr-3"></span> */}
@@ -2520,6 +2524,8 @@ const renderGuardianSuccessScreen = () => {
     </div>
   );
 };
+
+  if (showSplash) return <SplashScreen />;
 
   if (step === 1) return renderCurrentPage();
   if (step === 2) return renderStepTwo();
