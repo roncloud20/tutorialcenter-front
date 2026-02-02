@@ -3,6 +3,7 @@ import logo1 from "../../assets/images/TC 1.png";
 import student_image from "../../assets/images/childLearning.png";
 import hero_image from "../../assets/images/teacher-student.png";
 import dotted_box from "../../assets/svg/dots.svg";
+// import SignUp from "../../pages/public/SignUp.jsx";
 
 export default function Hero() {
   return (
@@ -119,7 +120,10 @@ export const MobileHero = () => {
                             <Link className="bg-gradient-to-r from-[#09314F] to-[#E83831] border-[2px]  border-solid border-x-[#E83831] border-y-[#09314F] mr-3 bg-clip-text text-transparent ">
                                 View Training
                             </Link>
-                            <Link className="bg-gradient-to-r from-[#09314F] to-[#E83831] text-white ">
+                            <Link className="bg-gradient-to-r from-[#09314F] to-[#E83831] text-white "
+                            to="/register"
+                            >
+                                
                                 Apply Now{" "}
                             </Link>
                         </div>

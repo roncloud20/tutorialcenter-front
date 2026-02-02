@@ -143,12 +143,12 @@ const MobileNavigation = ({ setVisible, visible }) => {
         </button>
         <div className="flex flex-col gap-8 items-end overflow-auto">
           {navLinks.map((items, i) => (
-            <a key={i} href={items.path} className="flex items-center gap-3">
+            <Link key={i} to={items.path} onClick={() => setVisible(false)} className="flex items-center gap-3">
               <Icon icon={items.icon} width="24" height="24" />
               <span className="text-sm font-medium dark:text-darkGray">
                 {items.name}
               </span>
-            </a>
+            </Link>
           ))}
         </div>
       </div>
