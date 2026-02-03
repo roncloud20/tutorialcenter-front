@@ -17,13 +17,15 @@ const Login = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  const [errors, setErrors] = useState({});
   const [userRole, setUserRole] = useState(null);
 
   const handleContinue = () => {
     if (!userRole) {
-      alert("Please select a user type");
+      setErrors({ userRole: true });
       return;
     }
+    setErrors({});
     // Navigate to next login step (credentials)
     // For now, it might just move to a similar step as SignUp's Step 2
     console.log("Proceeding to log in as:", userRole);
@@ -32,7 +34,7 @@ const Login = () => {
   if (showSplash) return <SplashScreen />;
 
   return (
-    <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row font-sans overflow-x-hidden">
+    <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row font-sans overflow-x-hidden">
       {/* LEFT SIDE: The Visual Image */}
       <div
         className="w-full h-[250px] md:w-1/2 md:h-full bg-cover bg-center relative bg-gray-300 order-1"
@@ -50,14 +52,14 @@ const Login = () => {
       </div>
 
       {/* RIGHT SIDE: Content Area */}
-      <div className="w-full md:w-1/2 min-h-full bg-[#F4F4F4] flex flex-col relative px-6 py-10 lg:px-[100px] lg:py-[100px] order-2">
+      <div className="w-full md:w-1/2 h-full bg-[#F4F4F4] flex flex-col relative px-6 py-10 lg:px-[100px] lg:py-[60px] order-2 md:order-1 overflow-y-auto">
         {/* 1. TOP NAV */}
         <div className="relative w-full flex items-center justify-center mb-8 md:mb-10">
           <button
             onClick={() => navigate("/")}
             className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
           >
-            <img src={ReturnArrow} alt="Back" className="h-6 w-6" />
+            <img src={ReturnArrow} alt="Back" className="h-6 w-6 lg:h-5 lg:w-5" />
           </button>
           <img
             src={TC_logo}
@@ -67,17 +69,18 @@ const Login = () => {
         </div>
 
         {/* 2. CENTER PIECE */}
-        <div className="flex flex-col items-center w-full my-auto">
-          <div className="text-center mb-4">
+        <div className="flex flex-col items-center w-full my-auto transition-all">
+          <div className="text-center mb-4 transition-all">
             <h1 className="text-3xl font-bold text-[#09314F]">Log In</h1>
-            <p className="text-gray-500 text-sm max-w-[300px] mx-auto mt-2">
+            <p className="text-gray-500 text-sm max-w-[300px] mx-auto mt-2 transition-all">
               Welcome back! Log in to continue your journey with us.
             </p>
           </div>
 
           <div
-            className="bg-white shadow-sm border border-gray-100 rounded-lg p-6 flex flex-col items-center
-                       w-full max-w-[369px] md:w-[369px] md:min-h-[280px]"
+            className={`bg-white shadow-sm border rounded-lg p-6 flex flex-col items-center
+                       w-full max-w-[369px] md:w-[369px] md:min-h-[280px] transition-all
+                       ${errors.userRole ? 'border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]' : 'border-gray-100'}`}
           >
             {/* Student Button */}
             <button

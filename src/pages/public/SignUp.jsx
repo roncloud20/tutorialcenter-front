@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import signup_img from "../../assets/images/Student_sign_up.jpg";
 import TC_logo from "../../assets/images/tutorial_logo.png";
 import ReturnArrow from "../../assets/svg/return arrow.svg";
@@ -16,9 +16,13 @@ const InputField = ({
   onChange,
   type = "text",
   fullWidth = false,
+  hasError = false,
 }) => (
   <div
-    className={`flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] border border-transparent focus-within:border-[#09314F] transition-all w-full`}
+    className={`flex items-center bg-white rounded-xl px-4 h-[55px] border-2 transition-all w-full
+      ${hasError 
+        ? 'border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]' 
+        : 'border-transparent focus-within:border-[#09314F]'}`}
   >
     <span className="text-gray-400 text-lg mr-3 select-none">{icon}</span>
     <input
@@ -41,12 +45,16 @@ const CustomDropdown = ({
   onToggle,
   isSmall = false,
   multiSelect = false,
+  hasError = false,
 }) => (
   <div className="relative w-full">
     <div
       onClick={onToggle}
-      className={`flex items-center bg-[#F9F4F3] rounded-xl px-4 cursor-pointer border border-transparent hover:border-[#09314F] transition-all w-full
-        ${isSmall ? 'h-[40px] md:h-[45px]' : 'h-[55px]'}`}
+      className={`flex items-center bg-[#F9F4F3] rounded-xl px-4 cursor-pointer border-2 transition-all w-full
+        ${isSmall ? 'h-[40px] md:h-[45px]' : 'h-[55px]'}
+        ${hasError 
+          ? 'border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]' 
+          : 'border-transparent hover:border-[#09314F]'}`}
     >
       {icon && <span className="text-gray-400 mr-2 md:mr-3">{icon}</span>}
       <span className={`flex-1 font-bold truncate ${value && (multiSelect ? value.length > 0 : true) ? 'text-gray-700' : 'text-gray-400'} 
@@ -97,6 +105,38 @@ const StudentBiodataFields = ({
 }) => {
   const getFieldValue = (field) => student[field] || "";
   const getFieldError = (field) => errors[field];
+
+  // Ref for the hidden file input so dropdown/upload can trigger native file chooser
+  const fileInputRef = useRef(null);
+  // Drag state to provide visual feedback when dragging an image over the avatar
+  const [isDragging, setIsDragging] = useState(false);
+  // Stable preview URL: use string src directly, or create an object URL for File/Blob
+  const [previewUrl, setPreviewUrl] = useState(() => {
+    if (!student.displayPic) return null;
+    return typeof student.displayPic === 'string' ? student.displayPic : URL.createObjectURL(student.displayPic);
+  });
+
+  useEffect(() => {
+    if (!student.displayPic) { setPreviewUrl(null); return; }
+    if (typeof student.displayPic === 'string') { setPreviewUrl(student.displayPic); return; }
+
+    const url = URL.createObjectURL(student.displayPic);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [student.displayPic]);
+
+  // Drag handlers
+  const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; setIsDragging(true); };
+  const handleDragEnter = (e) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file && file.type && file.type.startsWith('image/')) {
+      onChange('displayPic', file);
+    }
+  };
 
   // SVG Icon Components
   const PersonIcon = () => (
@@ -169,30 +209,60 @@ const StudentBiodataFields = ({
           onClick={onBack}
           className="mb-4 hover:bg-gray-100 p-2 rounded-full transition-all w-fit block md:hidden"
         >
-          <img src={ReturnArrow} alt="Back" className="w-6 h-6" />
+          <img src={ReturnArrow} alt="Back" className="w-6 h-6 lg:w-5 lg:h-5" />
         </button>
       )}
       {/* Display Picture Upload */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col items-center mb-6">
+        <label
+          className={`cursor-pointer relative overflow-hidden bg-[#C4D3DC] hover:bg-[#B0C4CE] text-white w-28 h-28 rounded-full flex items-center justify-center transition-all shadow-md group
+            ${getFieldError('displayPic') ? 'ring-4 ring-red-500/40' : ''} ${isDragging ? 'ring-4 ring-[#86D294] scale-105' : ''}`}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          aria-label="Upload or drop image"
+        >
+          {previewUrl ? (
+            <img 
+              src={previewUrl}
+              alt="Preview" 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <CameraIcon />
+          )}
+
+          <div className={`absolute inset-0 bg-black/20 transition-opacity flex items-center justify-center ${isDragging ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+            {isDragging ? (
+              <span className="text-white font-bold text-sm">Drop to upload</span>
+            ) : (
+              <CameraIcon />
+            )}
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept="image/*"
+            onChange={(e) => {
+              const f = e.target.files[0];
+              if (f) onChange('displayPic', f);
+            }}
+          />
+        </label>
+        
         {showLabels && (
-          <label className="text-xs font-bold text-gray-500 ml-1">
+          <label className="text-sm font-bold text-gray-500 mt-3">
             Display picture <span className="text-gray-300 font-normal">(optional)</span>
+            {getFieldError('displayPic') && (
+              <span className="text-red-500 text-xs ml-2 font-semibold">
+                ({getFieldError('displayPic')})
+              </span>
+            )}
           </label>
         )}
-        <div className="flex flex-col items-center justify-center bg-[#F9F4F3] rounded-xl p-6 border border-dashed border-gray-300">
-          <label className="cursor-pointer bg-[#C4D3DC] hover:bg-[#B0C4CE] text-white w-16 h-16 rounded-xl flex items-center justify-center transition-colors shadow-sm mb-2">
-            <CameraIcon />
-            <input
-              type="file"
-              className="hidden"
-              accept="image/*"
-              onChange={(e) => onChange('displayPic', e.target.files[0])}
-            />
-          </label>
-          <span className="text-gray-500 text-sm font-medium">
-            {student.displayPic ? student.displayPic.name : "Upload Photo"}
-          </span>
-        </div>
       </div>
 
       {/* First Name */}
@@ -203,16 +273,13 @@ const StudentBiodataFields = ({
           </label>
         )}
         <div className="flex flex-col">
-          <div className="flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] border border-transparent focus-within:border-[#09314F] transition-all w-full">
-            <span className="text-gray-400 mr-3"><PersonIcon /></span>
-            <input
-              type="text"
-              placeholder="Input first name"
-              value={getFieldValue('firstName')}
-              onChange={(e) => onChange('firstName', e.target.value)}
-              className="bg-transparent w-full outline-none text-gray-700 font-medium placeholder-gray-400"
-            />
-          </div>
+          <InputField
+            icon={<PersonIcon />}
+            placeholder="Input first name"
+            value={getFieldValue('firstName')}
+            onChange={(e) => onChange('firstName', e.target.value)}
+            hasError={!!getFieldError('firstName')}
+          />
           {getFieldError('firstName') && (
             <p className="text-red-500 text-xs mt-1 ml-1 font-semibold">
               {getFieldError('firstName')}
@@ -229,16 +296,13 @@ const StudentBiodataFields = ({
           </label>
         )}
         <div className="flex flex-col">
-          <div className="flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] border border-transparent focus-within:border-[#09314F] transition-all w-full">
-            <span className="text-gray-400 mr-3"><PersonIcon /></span>
-            <input
-              type="text"
-              placeholder="Input last name"
-              value={getFieldValue('lastName')}
-              onChange={(e) => onChange('lastName', e.target.value)}
-              className="bg-transparent w-full outline-none text-gray-700 font-medium placeholder-gray-400"
-            />
-          </div>
+          <InputField
+            icon={<PersonIcon />}
+            placeholder="Input last name"
+            value={getFieldValue('lastName')}
+            onChange={(e) => onChange('lastName', e.target.value)}
+            hasError={!!getFieldError('lastName')}
+          />
           {getFieldError('lastName') && (
             <p className="text-red-500 text-xs mt-1 ml-1 font-semibold">
               {getFieldError('lastName')}
@@ -255,16 +319,14 @@ const StudentBiodataFields = ({
           </label>
         )}
         <div className="flex flex-col">
-          <div className="flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] border border-transparent focus-within:border-[#09314F] transition-all w-full">
-            <span className="text-gray-400 mr-3"><CalendarIcon /></span>
-            <input
-              type="date"
-              placeholder="-- / -- / ----"
-              value={getFieldValue('dob')}
-              onChange={(e) => onChange('dob', e.target.value)}
-              className="bg-transparent w-full outline-none text-gray-700 font-medium placeholder-gray-400"
-            />
-          </div>
+          <InputField
+            icon={<CalendarIcon />}
+            type="date"
+            placeholder="-- / -- / ----"
+            value={getFieldValue('dob')}
+            onChange={(e) => onChange('dob', e.target.value)}
+            hasError={!!getFieldError('dob')}
+          />
           {getFieldError('dob') && (
             <p className="text-red-500 text-xs mt-1 ml-1 font-semibold">
               {getFieldError('dob')}
@@ -289,6 +351,7 @@ const StudentBiodataFields = ({
             onChange={(val) => onChange('gender', val)}
             isOpen={activeDropdown === `gender_${studentIndex}`}
             onToggle={() => setActiveDropdown(activeDropdown === `gender_${studentIndex}` ? null : `gender_${studentIndex}`)}
+            hasError={!!getFieldError('gender')}
           />
           {getFieldError('gender') && (
             <p className="text-red-500 text-xs mt-1 ml-1 font-semibold">
@@ -314,6 +377,7 @@ const StudentBiodataFields = ({
             onChange={(val) => onChange('department', val)}
             isOpen={activeDropdown === `dept_${studentIndex}`}
             onToggle={() => setActiveDropdown(activeDropdown === `dept_${studentIndex}` ? null : `dept_${studentIndex}`)}
+            hasError={!!getFieldError('department')}
           />
           {getFieldError('department') && (
             <p className="text-red-500 text-xs mt-1 ml-1 font-semibold">
@@ -331,16 +395,13 @@ const StudentBiodataFields = ({
           </label>
         )}
         <div className="flex flex-col">
-          <div className="flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] border border-transparent focus-within:border-[#09314F] transition-all w-full">
-            <span className="text-gray-400 mr-3"><LocationIcon /></span>
-            <input
-              type="text"
-              placeholder="Input location"
-              value={getFieldValue('location')}
-              onChange={(e) => onChange('location', e.target.value)}
-              className="bg-transparent w-full outline-none text-gray-700 font-medium placeholder-gray-400"
-            />
-          </div>
+          <InputField
+            icon={<LocationIcon />}
+            placeholder="Input location"
+            value={getFieldValue('location')}
+            onChange={(e) => onChange('location', e.target.value)}
+            hasError={!!getFieldError('location')}
+          />
           {getFieldError('location') && (
             <p className="text-red-500 text-xs mt-1 ml-1 font-semibold">
               {getFieldError('location')}
@@ -360,7 +421,7 @@ const StudentBiodataFields = ({
             Address <span className="text-gray-300 font-normal">(optional)</span>
           </label>
         )}
-        <div className="flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] border border-transparent focus-within:border-[#09314F] transition-all w-full">
+        <div className="flex items-center bg-white rounded-xl px-4 h-[55px] border border-transparent focus-within:border-[#09314F] transition-all w-full">
           <span className="text-gray-400 mr-3"><AddressIcon /></span>
           <input
             type="text"
@@ -425,6 +486,7 @@ const SignUp = () => {
   });
 
   const [showError, setShowError] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -519,6 +581,17 @@ const validateAllBiodataFields = (studentData) => {
   const [activeTab, setActiveTab] = useState(0);
   const [studentPassword, setStudentPassword] = useState("");
   const [confirmStudentPassword, setConfirmStudentPassword] = useState("");
+  // show/hide toggles for guardian password fields
+  const [showStudentPassword, setShowStudentPassword] = useState(false);
+  const [showConfirmStudentPassword, setShowConfirmStudentPassword] = useState(false);
+
+  // Eye icon for password visibility toggle
+  const EyeIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10.0032 12C11.1078 12 12.0032 11.1046 12.0032 10C12.0032 8.89543 11.1078 8 10.0032 8C8.89861 8 8.00318 8.89543 8.00318 10C8.00318 11.1046 8.89861 12 10.0032 12Z" fill="#121D24"/>
+      <path fillRule="evenodd" clipRule="evenodd" d="M0.460938 10C1.73519 5.94291 5.52549 3 10.0031 3C14.4808 3 18.2711 5.94288 19.5453 9.99996C18.2711 14.0571 14.4808 17 10.0031 17C5.5255 17 1.73521 14.0571 0.460938 10ZM14.0032 10C14.0032 12.2091 12.2123 14 10.0032 14C7.79404 14 6.00318 12.2091 6.00318 10C6.00318 7.79086 7.79404 6 10.0032 6C12.2123 6 14.0032 7.79086 14.0032 10Z" fill="#121D24"/>
+    </svg>
+  );
 
   const [selectedExams, setSelectedExams] = useState(["JAMB"]);
   const [visibleExams, setVisibleExams] = useState(["JAMB"]);
@@ -736,6 +809,8 @@ const [selectedPayment, setSelectedPayment] = useState(null);
     // 2. Validate length
     if (otpCode.length < 4) {
       setFormError("Please enter the complete 4-digit code.");
+      // Auto-clear error after 3 seconds
+      setTimeout(() => setFormError(""), 3000);
       return;
     }
 
@@ -833,8 +908,26 @@ const [selectedPayment, setSelectedPayment] = useState(null);
       return;
     }
     setStep(6); 
-  } else {
-    setStep(6); 
+  } else if (userRole === 'guardian') {
+    // Validate all student biodata
+    const errors = {};
+    let hasErrors = false;
+
+    students.forEach((student, index) => {
+      const studentErrors = validateAllBiodataFields(student);
+      if (studentErrors) {
+        errors[`student_${index}`] = studentErrors;
+        hasErrors = true;
+      }
+    });
+
+    if (hasErrors) {
+      setGuardianErrors(errors);
+      return;
+    }
+
+    setGuardianErrors({});
+    setStep(6);
   }
 };
 
@@ -1073,7 +1166,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
   function renderCurrentPage() {
     if (step === 1) {
       return (
-        <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row font-sans overflow-x-hidden">
+        <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row font-sans overflow-x-hidden">
           <style>{`
             @keyframes bluePulse {
               0% { box-shadow: 0 0 0px rgba(59, 130, 246, 0); border-color: transparent; }
@@ -1084,7 +1177,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
           `}</style>
 
           {/* LEFT SIDE: Content Area */}
-          <div className="w-full md:w-1/2 min-h-full bg-[#F4F4F4] flex flex-col relative px-6 py-10 lg:px-[100px] lg:py-[100px] order-2 md:order-1">
+          <div className="w-full md:w-1/2 h-full bg-[#F4F4F4] flex flex-col justify-center relative px-6 py-10 lg:px-[100px] lg:py-[60px] order-2 md:order-1 overflow-y-auto">
         
               {/* 1. TOP NAV */}
               <div className="relative w-full flex items-center justify-center mb-8 md:mb-10">
@@ -1092,7 +1185,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
                   onClick={() => navigate("/")}
                   className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
                 >
-                  <img src={ReturnArrow} alt="Back" className="h-6 w-6" />
+                  <img src={ReturnArrow} alt="Back" className="h-6 w-6 lg:h-5 lg:w-5" />
                 </button>
                 <img
                   src={TC_logo}
@@ -1193,7 +1286,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
     const mobileAccentImg = userRole === "student" ? signup_img : select_student;
 
     return (
-      <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row bg-[#F9FAFB] font-sans overflow-x-hidden">
+      <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row bg-[#F9FAFB] font-sans overflow-x-hidden">
         
         {/* --- MOBILE ONLY: Role-based accent image --- */}
         <div
@@ -1219,9 +1312,9 @@ const handleGuardianStep8Submit = (paymentMethod) => {
         </div>
 
         {/* --- FORM SECTION --- */}
-        <div className="w-full md:w-1/2 h-full flex flex-col relative px-6 py-10 lg:px-[100px] lg:py-[60px] bg-[#F9FAFB] order-2 md:order-1 overflow-y-auto">
+        <div className="w-full md:w-1/2 h-full flex flex-col justify-start items-center relative px-6 py-10 lg:px-[100px] lg:py-[60px] bg-[#F9FAFB] order-2 md:order-1 overflow-y-auto">
           
-          <div className="w-full max-w-[448px] mx-auto">
+          <div className="w-full max-w-[448px]">
             {/* Header Area */}
             <div className="relative w-full flex items-center justify-center mb-8 md:mb-10 text-center">
               {/* Return Arrow */}
@@ -1229,7 +1322,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
                 onClick={() => setStep(1)}
                 className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
               >
-                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+                <img className="w-5 h-5 md:w-6 md:h-6 lg:w-5 lg:h-5" src={ReturnArrow} alt="Back" />
               </button>
               <img src={TC_logo} alt="Logo" className="h-12 md:h-14 w-auto" />
             </div>
@@ -1268,7 +1361,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
             <div className="flex flex-col gap-4 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 mb-6">
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-gray-600 ml-1">Email / Phone Number</label>
-                <div className="flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] border border-transparent focus-within:border-[#09314F] transition-all">
+                <div className="flex items-center bg-white rounded-xl px-4 h-[55px] border border-transparent focus-within:border-[#09314F] transition-all">
                   <span className="mr-3 flex-shrink-0">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M2.003 5.884L10 9.882L17.997 5.884C17.9674 5.37444 17.7441 4.89549 17.3728 4.54523C17.0016 4.19497 16.5104 3.99991 16 4H4C3.48958 3.99991 2.99845 4.19497 2.62718 4.54523C2.25591 4.89549 2.0326 5.37444 2.003 5.884Z" fill="#121D24"/>
@@ -1298,12 +1391,10 @@ const handleGuardianStep8Submit = (paymentMethod) => {
 
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-gray-600 ml-1">Password</label>
-                <div className="flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] border border-transparent focus-within:border-[#09314F] transition-all">
+                <div className={`flex items-center bg-white rounded-xl px-4 h-[55px] border-2 transition-all
+                  ${errors.password ? 'border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]' : 'border-transparent focus-within:border-[#09314F]'}`}>
                   <button onClick={() => setShowPassword(!showPassword)} className="mr-3 flex-shrink-0 hover:opacity-70 transition-all">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M10.0032 12C11.1078 12 12.0032 11.1046 12.0032 10C12.0032 8.89543 11.1078 8 10.0032 8C8.89861 8 8.00318 8.89543 8.00318 10C8.00318 11.1046 8.89861 12 10.0032 12Z" fill="#121D24"/>
-                      <path fillRule="evenodd" clipRule="evenodd" d="M0.460938 10C1.73519 5.94291 5.52549 3 10.0031 3C14.4808 3 18.2711 5.94288 19.5453 9.99996C18.2711 14.0571 14.4808 17 10.0031 17C5.5255 17 1.73521 14.0571 0.460938 10ZM14.0032 10C14.0032 12.2091 12.2123 14 10.0032 14C7.79404 14 6.00318 12.2091 6.00318 10C6.00318 7.79086 7.79404 6 10.0032 6C12.2123 6 14.0032 7.79086 14.0032 10Z" fill="#121D24"/>
-                    </svg>
+                    <EyeIcon />
                   </button>
                   <input
                     type={showPassword ? "text" : "password"}
@@ -1317,12 +1408,10 @@ const handleGuardianStep8Submit = (paymentMethod) => {
 
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-gray-600 ml-1">Confirm Password</label>
-                <div className="flex items-center bg-[#F9F4F3] rounded-xl px-4 h-[55px] border border-transparent focus-within:border-[#09314F] transition-all">
+                <div className={`flex items-center bg-white rounded-xl px-4 h-[55px] border-2 transition-all
+                  ${errors.confirmPassword ? 'border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]' : 'border-transparent focus-within:border-[#09314F]'}`}>
                   <button onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="mr-3 flex-shrink-0 hover:opacity-70 transition-all">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M10.0032 12C11.1078 12 12.0032 11.1046 12.0032 10C12.0032 8.89543 11.1078 8 10.0032 8C8.89861 8 8.00318 8.89543 8.00318 10C8.00318 11.1046 8.89861 12 10.0032 12Z" fill="#121D24"/>
-                      <path fillRule="evenodd" clipRule="evenodd" d="M0.460938 10C1.73519 5.94291 5.52549 3 10.0031 3C14.4808 3 18.2711 5.94288 19.5453 9.99996C18.2711 14.0571 14.4808 17 10.0031 17C5.5255 17 1.73521 14.0571 0.460938 10ZM14.0032 10C14.0032 12.2091 12.2123 14 10.0032 14C7.79404 14 6.00318 12.2091 6.00318 10C6.00318 7.79086 7.79404 6 10.0032 6C12.2123 6 14.0032 7.79086 14.0032 10Z" fill="#121D24"/>
-                    </svg>
+                    <EyeIcon />
                   </button>
                   <input
                     type={showConfirmPassword ? "text" : "password"}
@@ -1387,7 +1476,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
 
               <p className="text-center text-sm text-gray-500 mt-4 pb-2">
                 Already have an account?{" "}
-                <a href="/login" className="text-[#E33629] font-semibold hover:underline">Log In</a>
+                <Link to="/login" className="text-[#E33629] font-semibold hover:underline">LogIn</Link>
               </p>
             </div>
           </div>
@@ -1398,11 +1487,10 @@ const handleGuardianStep8Submit = (paymentMethod) => {
 
   // 5. STEP 3 RENDER OTP
   const renderStepThree = () => {
-    const isEmail = email.includes("@");
     const accentImg = userRole === "student" ? otp_img_student : otp_img_parent;
 
     return (
-      <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row bg-white font-sans overflow-x-hidden">
+      <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row bg-white font-sans overflow-x-hidden">
         
         {/* --- IMAGE SECTION (Top on mobile, Right on Desktop) --- */}
         <div className="w-full h-[250px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
@@ -1423,7 +1511,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
         </div>
 
         {/* --- FORM SECTION --- */}
-        <div className="w-full md:w-1/2 h-full flex flex-col bg-[#F9FAFB] order-2 md:order-1 px-6 py-10 lg:px-[100px] lg:py-[60px] overflow-y-auto">
+        <div className="w-full md:w-1/2 h-full flex flex-col justify-center bg-[#F9FAFB] order-2 md:order-1 px-6 py-10 lg:px-[100px] lg:py-[60px] overflow-y-auto">
           <div className="w-full max-w-[448px] mx-auto text-center mt-4 md:mt-10">
             <div className="relative w-full flex items-center justify-center mb-6">
               {/* Back Button */}
@@ -1431,7 +1519,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
                 onClick={() => setStep(2)}
                 className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
               >
-                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+                <img className="w-5 h-5 md:w-6 md:h-6 lg:w-5 lg:h-5" src={ReturnArrow} alt="Back" />
               </button>
               <h1 className="text-2xl md:text-3xl font-black text-[#09314F] uppercase tracking-tight">
                 OTP VERIFICATION
@@ -1441,6 +1529,12 @@ const handleGuardianStep8Submit = (paymentMethod) => {
               <p className="text-gray-500 mb-6 text-sm md:text-base">
                 We have sent an OTP to your email: <br /><span className="font-bold text-[#09314F]">{email}</span>
               </p>
+
+              {formError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-600 text-xs font-semibold">{formError}</p>
+                </div>
+              )}
               
               <div className="flex justify-between gap-2 md:gap-4 mb-8">
                 {otp.map((digit, i) => (
@@ -1452,7 +1546,11 @@ const handleGuardianStep8Submit = (paymentMethod) => {
                     value={digit}
                     onChange={(e) => handleOtpChange(e.target.value, i)}
                     onKeyDown={(e) => handleOtpKeyDown(e, i)}
-                    className="w-full max-w-[60px] md:max-w-[70px] h-[70px] md:h-[80px] bg-[#F9F4F3] border-2 border-transparent focus:border-[#09314F] rounded-xl text-center text-2xl md:text-3xl font-bold outline-none transition-all"
+                    className={`w-full max-w-[60px] md:max-w-[70px] h-[70px] md:h-[80px] bg-white border-2 rounded-xl text-center text-2xl md:text-3xl font-bold outline-none transition-all ${
+                      formError
+                        ? 'border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'
+                        : 'border-transparent focus:border-[#09314F]'
+                    }`}
                   />
                 ))}
               </div>
@@ -1500,7 +1598,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
     const studentData = { firstName, lastName, dob, gender, department, location, address, displayPic };
 
     return (
-      <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row bg-white font-sans overflow-x-hidden">
+      <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row bg-white font-sans overflow-x-hidden">
         
         {/* --- IMAGE SECTION --- */}
         <div className="w-full h-[250px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
@@ -1509,19 +1607,19 @@ const handleGuardianStep8Submit = (paymentMethod) => {
             onClick={() => setStep(3)}
             className="absolute left-6 top-6 md:left-10 md:top-8 bg-white/80 backdrop-blur-sm md:bg-transparent w-10 h-10 md:w-auto md:h-auto rounded-full flex items-center justify-center hover:text-gray-500 transition-all shadow-md md:shadow-none z-20"
           >
-            <img src={ReturnArrow} alt="Back" className="w-5 h-5 md:w-6 md:h-6" />
+            <img src={ReturnArrow} alt="Back" className="w-5 h-5 md:w-6 md:h-6 lg:w-5 lg:h-5" />
           </button>
         </div>
 
         {/* --- FORM SECTION --- */}
-        <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] bg-[#F9FAFB] order-2 md:order-1 overflow-y-auto">
-          <div className="w-full max-w-[500px] mx-auto pb-4">
-            <div className="relative w-full flex items-center justify-center mb-2 mt-4">
+        <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] bg-[#F9FAFB] order-2 md:order-1 overflow-y-auto overflow-x-hidden">
+          <div className="w-full max-w-[500px] mx-auto my-auto pb-4 transition-all">
+            <div className="relative w-full flex items-center justify-center mb-2 mt-4 transition-all">
               <button
                 onClick={() => setStep(3)}
                 className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
               >
-                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+                <img className="w-5 h-5 md:w-6 md:h-6 lg:w-5 lg:h-5" src={ReturnArrow} alt="Back" />
               </button>
               <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Student Biodata</h1>
             </div>
@@ -1563,29 +1661,23 @@ const handleGuardianStep8Submit = (paymentMethod) => {
     };
 
     return (
-      <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row bg-white font-sans overflow-x-hidden">
+      <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row bg-white font-sans overflow-x-hidden">
         
         {/* --- IMAGE SECTION --- */}
         <div className="w-full h-[250px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
           <img src={select_student} alt="Guardian Add Student" className="w-full h-full object-cover" />
-          <button
-            onClick={() => setStep(3)}
-            className="absolute left-6 top-6 md:left-10 md:top-8 bg-white/80 backdrop-blur-sm md:bg-transparent w-10 h-10 md:w-auto md:h-auto rounded-full flex items-center justify-center hover:text-gray-500 transition-all shadow-md md:shadow-none z-20"
-          >
-            <img src={ReturnArrow} alt="Back" className="w-5 h-5 md:w-6 md:h-6" />
-          </button>
         </div>
 
         {/* --- FORM SECTION --- */}
         <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] bg-white order-2 md:order-1 overflow-y-auto">
           
-          <div className="w-full max-w-[500px] mx-auto pb-4">
+          <div className="w-full max-w-[500px] mx-auto my-auto pb-4">
             <div className="relative w-full flex items-center justify-center mb-4 mt-4">
               <button
                 onClick={() => setStep(3)}
                 className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
               >
-                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+                <img className="w-5 h-5 md:w-6 md:h-6 lg:w-5 lg:h-5" src={ReturnArrow} alt="Back" />
               </button>
               <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Add Student</h1>
             </div>
@@ -1619,8 +1711,15 @@ const handleGuardianStep8Submit = (paymentMethod) => {
                             placeholder="First Name"
                             value={student.firstName}
                             onChange={(e) => updateStudent(index, "firstName", e.target.value)}
-                            className="w-full h-[50px] bg-[#F9F4F3] px-4 rounded-lg outline-none text-sm border focus:border-[#09314F]"
+                            className={`w-full h-[50px] bg-white px-4 rounded-lg outline-none text-sm border transition-all ${
+                              guardianErrors && guardianErrors[`student_${index}`]?.firstName
+                                ? 'border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'
+                                : 'border-gray-300 focus:border-[#09314F]'
+                            }`}
                           />
+                          {guardianErrors && guardianErrors[`student_${index}`]?.firstName && (
+                            <p className="text-red-500 text-xs mt-1 ml-1 font-semibold">{guardianErrors[`student_${index}`].firstName}</p>
+                          )}
                         </div>
                         <div className="w-1/2">
                           <label className="text-xs font-bold text-gray-500 ml-1 mb-1">Last Name</label>
@@ -1628,8 +1727,15 @@ const handleGuardianStep8Submit = (paymentMethod) => {
                             placeholder="Last Name"
                             value={student.lastName}
                             onChange={(e) => updateStudent(index, "lastName", e.target.value)}
-                            className="w-full h-[50px] bg-[#F9F4F3] px-4 rounded-lg outline-none text-sm border focus:border-[#09314F]"
+                            className={`w-full h-[50px] bg-white px-4 rounded-lg outline-none text-sm border transition-all ${
+                              guardianErrors && guardianErrors[`student_${index}`]?.lastName
+                                ? 'border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'
+                                : 'border-gray-300 focus:border-[#09314F]'
+                            }`}
                           />
+                          {guardianErrors && guardianErrors[`student_${index}`]?.lastName && (
+                            <p className="text-red-500 text-xs mt-1 ml-1 font-semibold">{guardianErrors[`student_${index}`].lastName}</p>
+                          )}
                         </div>
                       </div>
                       <div>
@@ -1638,8 +1744,15 @@ const handleGuardianStep8Submit = (paymentMethod) => {
                           placeholder="child@email.com or +234..."
                           value={student.identity}
                           onChange={(e) => updateStudent(index, "identity", e.target.value)}
-                          className="w-full h-[50px] bg-[#F9F4F3] px-4 rounded-lg outline-none text-sm border focus:border-[#09314F]"
+                          className={`w-full h-[50px] bg-white px-4 rounded-lg outline-none text-sm border transition-all ${
+                            guardianErrors && guardianErrors[`student_${index}`]?.identity
+                              ? 'border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'
+                              : 'border-gray-300 focus:border-[#09314F]'
+                          }`}
                         />
+                        {guardianErrors && guardianErrors[`student_${index}`]?.identity && (
+                          <p className="text-red-500 text-xs mt-1 ml-1 font-semibold">{guardianErrors[`student_${index}`].identity}</p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1659,23 +1772,50 @@ const handleGuardianStep8Submit = (paymentMethod) => {
             <div className="flex gap-4 mb-6">
               <div className="w-1/2">
                 <label className="text-xs font-bold text-gray-500 ml-1 mb-1">General Password</label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={studentPassword}
-                  onChange={(e) => setStudentPassword(e.target.value)}
-                  className="w-full h-[50px] bg-[#F9F4F3] px-4 rounded-lg outline-none text-sm border focus:border-[#09314F]"
-                />
+                <div className="relative">
+                  <input
+                    type={showStudentPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={studentPassword}
+                    onChange={(e) => setStudentPassword(e.target.value)}
+                    className={`w-full h-[50px] bg-white px-4 rounded-lg outline-none text-sm border ${guardianErrors.password ? 'border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]' : 'focus:border-[#09314F]'}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowStudentPassword(!showStudentPassword)}
+                    aria-label={showStudentPassword ? 'Hide password' : 'Show password'}
+                    className="absolute top-1/2 -translate-y-1/2 right-3 text-gray-400 hover:opacity-70 transition-all"
+                  >
+                    <EyeIcon />
+                  </button>
+                </div>
+                {guardianErrors.password && (
+                  <p className="text-red-500 text-xs mt-1 ml-1 font-semibold">{guardianErrors.password}</p>
+                )}
               </div>
+
               <div className="w-1/2">
                 <label className="text-xs font-bold text-gray-500 ml-1 mb-1">Confirm Password</label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmStudentPassword}
-                  onChange={(e) => setConfirmStudentPassword(e.target.value)}
-                  className="w-full h-[50px] bg-[#F9F4F3] px-4 rounded-lg outline-none text-sm border focus:border-[#09314F]"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmStudentPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={confirmStudentPassword}
+                    onChange={(e) => setConfirmStudentPassword(e.target.value)}
+                    className={`w-full h-[50px] bg-white px-4 rounded-lg outline-none text-sm border ${guardianErrors.passwordMatch ? 'border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]' : 'focus:border-[#09314F]'}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmStudentPassword(!showConfirmStudentPassword)}
+                    aria-label={showConfirmStudentPassword ? 'Hide password' : 'Show password'}
+                    className="absolute top-1/2 -translate-y-1/2 right-3 text-gray-400 hover:opacity-70 transition-all"
+                  >
+                    <EyeIcon />
+                  </button>
+                </div>
+                {guardianErrors.passwordMatch && (
+                  <p className="text-red-500 text-xs mt-1 ml-1 font-semibold">{guardianErrors.passwordMatch}</p>
+                )}
               </div>
             </div>
 
@@ -1694,7 +1834,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
 
   const renderGuardianStepFive = () => {
     return (
-      <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row font-sans bg-white overflow-x-hidden">
+      <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row font-sans bg-white overflow-x-hidden">
         
         {/* --- IMAGE SECTION (Top on mobile, Right on Desktop) --- */}
         <div className="w-full h-[250px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
@@ -1716,13 +1856,13 @@ const handleGuardianStep8Submit = (paymentMethod) => {
 
         {/* --- FORM SECTION (Bottom on mobile, Left on Desktop) --- */}
         <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] bg-[#F9FAFB] order-2 md:order-1 overflow-y-auto">
-          <div className="w-full max-w-[500px] mx-auto pb-4">
+          <div className="w-full max-w-[550px] mx-auto my-auto pb-4 transition-all">
             <div className="relative w-full flex items-center justify-center mb-4 mt-4">
               <button
                 onClick={() => setStep(4)}
                 className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
               >
-                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+                <img className="w-5 h-5 md:w-6 md:h-6 lg:w-5 lg:h-5" src={ReturnArrow} alt="Back" />
               </button>
               <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Student Biodata</h1>
             </div>
@@ -1733,16 +1873,22 @@ const handleGuardianStep8Submit = (paymentMethod) => {
               {students.map((student, index) => (
                 <div
                   key={index}
-                  className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white"
+                  className={`border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white transition-all ${guardianErrors && guardianErrors[`student_${index}`] ? 'ring-4 ring-red-500/20' : ''}`}
                 >
                   <div
                     onClick={() => setActiveTab(index)}
-                    className={`flex justify-between items-center p-4 cursor-pointer transition-colors
+                    className={`relative flex justify-between items-center p-4 cursor-pointer transition-colors
                       ${activeTab === index ? "bg-[#F9F4F3] border-b" : "bg-white hover:bg-gray-50"}`}
                   >
                     <span className="font-bold text-[#09314F] uppercase text-xs">
                       Student {index + 1} {student.firstName && <span className="text-gray-400 font-normal normal-case">— {student.firstName}</span>}
                     </span>
+
+                    {/* Error indicator for this student if validation found issues */}
+                    {guardianErrors && guardianErrors[`student_${index}`] && (
+                      <span className="absolute top-2 right-8 w-3 h-3 bg-red-500 rounded-full" title="This student has errors"></span>
+                    )}
+
                     <span className="text-[#09314F] transform transition-transform duration-300" style={{ rotate: activeTab === index ? "180deg" : "0deg" }}>▼</span>
                   </div>
 
@@ -1757,6 +1903,15 @@ const handleGuardianStep8Submit = (paymentMethod) => {
                         activeDropdown={activeDropdown}
                         setActiveDropdown={setActiveDropdown}
                       />
+                      
+                      {/* Display error messages below fields */}
+                      {guardianErrors && guardianErrors[`student_${index}`] && (
+                        <div className="mt-4 space-y-2 p-4 bg-red-50 border border-red-200 rounded-lg">
+                          {Object.entries(guardianErrors[`student_${index}`]).map(([field, error]) => (
+                            <p key={field} className="text-red-600 text-xs font-semibold">{error}</p>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1765,9 +1920,10 @@ const handleGuardianStep8Submit = (paymentMethod) => {
 
             <button
               onClick={handleStep5Submit}
-              className="w-full h-[55px] md:h-[60px] text-white rounded-xl font-bold mt-10 shadow-lg transition-all active:scale-95"
+              disabled={students.length === 0}
+              className="w-full h-[55px] md:h-[60px] text-white rounded-xl font-bold mt-10 shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
-                background: "linear-gradient(90deg, #0F2C45 0%, #A92429 100%)",
+                background: students.length === 0 ? "#cccccc" : "linear-gradient(90deg, #0F2C45 0%, #A92429 100%)",
               }}
             >
               Complete Registration
@@ -1782,7 +1938,7 @@ const handleGuardianStep8Submit = (paymentMethod) => {
     const examOptions = ["JAMB", "WAEC", "NECO", "GCE"];
 
     return (
-      <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row bg-[#F4F4F4] font-sans overflow-x-hidden">
+      <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row bg-[#F4F4F4] font-sans overflow-x-hidden">
         
         {/* --- IMAGE SECTION (Right on Desktop, Top on Mobile) --- */}
         <div className="w-full h-[250px] md:w-1/2 md:h-full relative order-1 md:order-2">
@@ -1794,15 +1950,15 @@ const handleGuardianStep8Submit = (paymentMethod) => {
 
         {/* --- FORM SECTION (Left on Desktop, Bottom on Mobile) --- */}
         <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] order-2 md:order-1 overflow-y-auto">
-          <div className="w-full max-w-[500px] mx-auto flex flex-col h-full justify-center">
+          <div className="w-full max-w-[500px] mx-auto my-auto flex flex-col transition-all">
             
             {/* Header with Back Button */}
-            <div className="relative w-full flex items-center justify-center mb-8">
+            <div className="relative w-full flex items-center justify-center mb-6 mt-4 transition-all">
               <button
                 onClick={() => setStep(4)}
                 className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
               >
-                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+                <img className="w-5 h-5 md:w-6 md:h-6 lg:w-5 lg:h-5" src={ReturnArrow} alt="Back" />
               </button>
               <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Select Training</h1>
             </div>
@@ -1877,7 +2033,7 @@ const renderGuardianStepSix = () => {
   };
 
   return (
-    <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row bg-[#F4F4F4] font-sans overflow-x-hidden">
+    <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row bg-[#F4F4F4] font-sans overflow-x-hidden">
       
       {/* --- IMAGE SECTION (Right on Desktop, Top on Mobile) --- */}
       <div className="w-full h-[250px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
@@ -1889,15 +2045,15 @@ const renderGuardianStepSix = () => {
 
       {/* --- FORM SECTION (Left on Desktop, Bottom on Mobile) --- */}
       <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] order-2 md:order-1 overflow-y-auto">
-        <div className="w-full max-w-[500px] mx-auto flex flex-col h-full justify-center">
+        <div className="w-full max-w-[500px] mx-auto my-auto flex flex-col transition-all">
           
           {/* Header with Back Button */}
-          <div className="relative w-full flex items-center justify-center mb-8">
+          <div className="relative w-full flex items-center justify-center mb-10 transition-all">
             <button
               onClick={() => setStep(5)}
               className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
             >
-              <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+              <img className="w-5 h-5 md:w-6 md:h-6 lg:w-5 lg:h-5" src={ReturnArrow} alt="Back" />
             </button>
             <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Select Training</h1>
           </div>
@@ -1966,7 +2122,7 @@ const renderGuardianStepSix = () => {
 
   const renderStudentStepSix = () => {
     return (
-      <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row bg-[#F8F9FA] font-sans overflow-x-hidden">
+      <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row bg-[#F8F9FA] font-sans overflow-x-hidden">
         
         {/* --- IMAGE SECTION (Top on mobile, Right on Desktop) --- */}
         <div className="w-full h-[250px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
@@ -1978,13 +2134,13 @@ const renderGuardianStepSix = () => {
 
         {/* --- FORM SECTION (Bottom on mobile, Left on Desktop) --- */}
         <div className="w-full md:w-1/2 h-full flex flex-col px-4 py-10 lg:px-[80px] lg:py-[60px] order-2 md:order-1 overflow-y-auto">
-          <div className="w-full max-w-[550px] mx-auto flex flex-col h-full">
-            <div className="relative w-full flex items-center justify-center mb-2 mt-4">
+          <div className="w-full max-w-[550px] mx-auto my-auto flex flex-col transition-all">
+            <div className="relative w-full flex items-center justify-center mb-2 mt-4 transition-all">
               <button
                 onClick={() => setStep(5)}
                 className="absolute left-0 p-2 hover:bg-gray-100 rounded-full transition-all z-10"
               >
-                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+                <img className="w-5 h-5 md:w-6 md:h-6 lg:w-5 lg:h-5" src={ReturnArrow} alt="Back" />
               </button>
               <h1 className="text-2xl md:text-3xl font-black text-[#09314F]">Subject Selection</h1>
             </div>
@@ -2055,7 +2211,7 @@ const renderGuardianStepSix = () => {
 
   const renderStudentStepSeven = () => {
     return (
-      <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row bg-white font-sans overflow-x-hidden">
+      <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row bg-white font-sans overflow-x-hidden">
         
         {/* --- IMAGE SECTION --- */}
         <div className="w-full h-[250px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
@@ -2067,13 +2223,13 @@ const renderGuardianStepSix = () => {
 
         {/* --- FORM SECTION --- */}
         <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] order-2 md:order-1 overflow-y-auto">
-          <div className="w-full max-w-[550px] mx-auto flex flex-col h-full">
-            <div className="relative w-full flex items-center justify-center mb-2 mt-4">
+          <div className="w-full max-w-[550px] mx-auto my-auto flex flex-col transition-all">
+            <div className="relative w-full flex items-center justify-center mb-2 mt-4 transition-all">
               <button
                 onClick={() => setStep(6)}
                 className="absolute left-0 p-2 hover:bg-gray-100 rounded-full transition-all z-10"
               >
-                <img className="w-5 h-5 md:w-6 md:h-6" src={ReturnArrow} alt="Back" />
+                <img className="w-5 h-5 md:w-6 md:h-6 lg:w-5 lg:h-5" src={ReturnArrow} alt="Back" />
               </button>
               <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Training Duration</h1>
             </div>
@@ -2150,7 +2306,7 @@ const renderGuardianStepSeven = () => {
   };
 
   return (
-    <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row bg-white font-sans overflow-x-hidden">
+    <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row bg-white font-sans overflow-x-hidden">
       
       {/* --- IMAGE SECTION --- */}
       <div className="w-full h-[250px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
@@ -2162,13 +2318,13 @@ const renderGuardianStepSeven = () => {
 
       {/* --- FORM SECTION --- */}
       <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] order-2 md:order-1 overflow-y-auto">
-        <div className="w-full max-w-[500px] mx-auto flex flex-col h-full">
-          <div className="relative w-full flex items-center justify-center mb-2 mt-4">
+        <div className="w-full max-w-[500px] mx-auto my-auto flex flex-col transition-all">
+          <div className="relative w-full flex items-center justify-center mb-2 mt-4 transition-all">
             <button 
               onClick={() => setStep(6)} 
               className="absolute left-0 p-2 hover:bg-gray-100 rounded-full transition-all z-10"
             >
-              <img src={ReturnArrow} alt="Back" className="w-5 h-5 md:w-6 md:h-6" />
+              <img src={ReturnArrow} alt="Back" className="w-5 h-5 md:w-6 md:h-6 lg:w-5 lg:h-5" />
             </button>
             <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Select Duration</h1>
           </div>
@@ -2255,7 +2411,7 @@ const renderStudentStepEight = () => {
   };
 
   return (
-    <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row font-sans bg-white overflow-x-hidden">
+    <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row font-sans bg-white overflow-x-hidden">
       {/* --- IMAGE SECTION (Top on mobile, Right on Desktop) --- */}
       <div className="w-full h-[192px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
         <img 
@@ -2276,13 +2432,13 @@ const renderStudentStepEight = () => {
 
       {/* --- CONTENT SECTION --- */}
       <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] bg-[#F9FAFB] order-2 md:order-1 overflow-y-auto">
-        <div className="w-full max-w-[448px] mx-auto text-center md:my-auto">
-          <div className="relative w-full flex items-center justify-center mb-6">
+        <div className="w-full max-w-[448px] mx-auto my-auto text-center transition-all">
+          <div className="relative w-full flex items-center justify-center mb-6 transition-all">
             <button 
               onClick={() => setStep(7)} 
               className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
             >
-              <img src={ReturnArrow} alt="Back" className="h-6 w-6" />
+              <img src={ReturnArrow} alt="Back" className="h-6 w-6 lg:h-5 lg:w-5" />
             </button>
             <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Payment Method</h1>
           </div>
@@ -2353,7 +2509,7 @@ const renderGuardianStepEight = () => {
   };
 
   return (
-    <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row font-sans bg-white overflow-x-hidden">
+    <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row font-sans bg-white overflow-x-hidden">
       {/* --- IMAGE SECTION (Top on mobile, Right on Desktop) --- */}
       <div className="w-full h-[192px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
         <img 
@@ -2374,13 +2530,13 @@ const renderGuardianStepEight = () => {
 
       {/* --- CONTENT SECTION --- */}
       <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] bg-[#F9FAFB] order-2 md:order-1 overflow-y-auto">
-        <div className="w-full max-w-[448px] mx-auto text-center md:my-auto">
-          <div className="relative w-full flex items-center justify-center mb-6">
+        <div className="w-full max-w-[448px] mx-auto my-auto text-center transition-all">
+          <div className="relative w-full flex items-center justify-center mb-6 transition-all">
             <button 
               onClick={() => setStep(7)} 
               className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
             >
-              <img src={ReturnArrow} alt="Back" className="h-6 w-6" />
+              <img src={ReturnArrow} alt="Back" className="h-6 w-6 lg:h-5 lg:w-5" />
             </button>
             <h1 className="text-2xl md:text-3xl font-bold text-[#09314F]">Payment Method</h1>
           </div>
@@ -2419,7 +2575,7 @@ const renderGuardianStepEight = () => {
 // ========== STEP 9: SUCCESS SCREEN ==========
 const renderStudentSuccessScreen = () => {
   return (
-    <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row font-sans bg-white overflow-x-hidden">
+    <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row font-sans bg-white overflow-x-hidden">
       {/* --- IMAGE SECTION (Top on mobile, Right on Desktop) --- */}
       <div className="w-full h-[250px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
         <img 
@@ -2431,7 +2587,7 @@ const renderStudentSuccessScreen = () => {
 
       {/* --- CONTENT SECTION --- */}
       <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] bg-white order-2 md:order-1 overflow-y-auto">
-        <div className="w-full max-w-[400px] mx-auto text-center md:my-auto">
+        <div className="w-full max-w-[400px] mx-auto my-auto text-center transition-all">
           {/* Success Icon */}
           <div className="w-20 h-20 md:w-24 md:h-24 bg-[#09314F] rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8">
             <svg className="w-10 h-10 md:w-12 md:h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2471,7 +2627,7 @@ const renderStudentSuccessScreen = () => {
 
 const renderGuardianSuccessScreen = () => {
   return (
-    <div className="w-screen min-h-screen md:h-screen flex flex-col md:flex-row font-sans bg-white overflow-x-hidden">
+    <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row font-sans bg-white overflow-x-hidden">
       {/* --- IMAGE SECTION (Top on mobile, Right on Desktop) --- */}
       <div className="w-full h-[250px] md:w-1/2 md:h-full bg-gray-200 relative order-1 md:order-2">
         <img 
@@ -2483,7 +2639,7 @@ const renderGuardianSuccessScreen = () => {
 
       {/* --- CONTENT SECTION --- */}
       <div className="w-full md:w-1/2 h-full flex flex-col px-6 py-10 lg:px-[100px] lg:py-[60px] bg-white order-2 md:order-1 overflow-y-auto">
-        <div className="w-full max-w-[400px] mx-auto text-center md:my-auto">
+        <div className="w-full max-w-[400px] mx-auto my-auto text-center transition-all">
           {/* Success Icon */}
           <div className="w-20 h-20 md:w-24 md:h-24 bg-[#09314F] rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8">
             <svg className="w-10 h-10 md:w-12 md:h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2565,3 +2721,7 @@ if (step === 9) {
 };
 
 export default SignUp;
+
+
+
+
