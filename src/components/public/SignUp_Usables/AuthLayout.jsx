@@ -1,5 +1,5 @@
 import React from 'react';
-import ReturnArrow from "../../assets/svg/return arrow.svg";
+import ReturnArrow from "../../../assets/svg/return arrow.svg";
 
 const AuthLayout = ({
   image,

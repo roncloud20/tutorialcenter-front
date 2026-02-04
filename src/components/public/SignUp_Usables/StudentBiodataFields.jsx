@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import InputField from './InputField';
 import CustomDropdown from './CustomDropdown';
-import ReturnArrow from "../../assets/svg/return arrow.svg"; // Adjust path if needed, usually imported in parent but here it's used for mobile back?
+import ReturnArrow from "../../../assets/svg/return arrow.svg"; // Adjust path if needed, usually imported in parent but here it's used for mobile back?
 // Actually ReturnArrow is used in line 215. I need to check the path.
 // The file is in src/components/public/ so path to assets is ../../assets/svg/return arrow.svg
 // which matches.

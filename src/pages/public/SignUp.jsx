@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 import SplashScreen from "../../components/public/SplashScreen";
+import ComingSoon from "../../components/public/ComingSoon";
 import StepOne from "./Student _Sign_up/StepOne";
 import StepTwo from "./Student _Sign_up/StepTwo";
 import StepThree from "./Student _Sign_up/StepThree";
@@ -24,14 +25,14 @@ import {
   handleStudentStep6Submit, 
   handleStudentStep7Submit, 
   handleStudentStep8Submit 
-} from "../../components/handle_submits/studentHandlers";
+} from "../../components/public/handle_submits/studentHandlers";
 import { 
   handleGuardianStep4Submit, 
   handleGuardianStep5Submit, 
   handleGuardianStep6Submit, 
   handleGuardianStep7Submit, 
   handleGuardianStep8Submit 
-} from "../../components/handle_submits/guardianHandlers";
+} from "../../components/public/handle_submits/guardianHandlers";
 
 
 const SignUp = () => {
@@ -302,6 +303,15 @@ const [selectedPayment, setSelectedPayment] = useState(null);
       />
     );
   }
+
+  // INTERCEPT GUARDIAN FLOW
+  if (userRole === "guardian") {
+    return <ComingSoon onBack={() => {
+      setStep(1);
+      setUserRole(null); 
+    }} />;
+  }
+
   if (step === 2) {
     return (
       <StepTwo

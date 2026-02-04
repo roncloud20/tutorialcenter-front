@@ -1,5 +1,5 @@
 import React from 'react';
-import AuthLayout from "../../../components/public/AuthLayout";
+import AuthLayout from "../../../components/public/SignUp_Usables/AuthLayout";
 import otp_img_student from "../../../assets/images/otpStudentpic.jpg";
 
 const StepEight = ({

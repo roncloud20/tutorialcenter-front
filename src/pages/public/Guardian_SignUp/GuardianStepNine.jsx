@@ -1,5 +1,5 @@
 import React from 'react';
-import AuthLayout from "../../../components/public/AuthLayout";
+import AuthLayout from "../../../components/public/SignUp_Usables/AuthLayout";
 import select_student from "../../../assets/images/add_student.png";
 
 const GuardianStepNine = ({
