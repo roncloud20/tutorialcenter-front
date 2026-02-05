@@ -1,15 +1,17 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-// import { Icon } from "@iconify/react/dist/iconify.js";
 import TC_logo from "../../../assets/images/tutorial_logo.png";
 import ReturnArrow from "../../../assets/svg/return arrow.svg";
 import signup_img from "../../../assets/images/student_sign_up.jpg";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import axios from "axios";
 
 export default function StudentRegistration() {
-  const navigate = useNavigate();
-  const [errors] = useState("");
-  const [loading] = useState(false);
+  const navigate = useNavigate(); // Initializing navigation
+  const [tel, setTel] = useState(null);
+  const [email, setEmail] = useState(null);
+  const [errors, setErrors] = useState(""); // Initializing errors
+  const [loading, setLoading] = useState(false); // loading for button press
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -17,6 +19,8 @@ export default function StudentRegistration() {
     password: "",
     confirmPassword: "",
   });
+  const API_BASE_URL =
+    process.env.REACT_APP_API_URL || "http://tutorialcenter-back.test";
 
   // Capture each user entries
   const handleChange = (e) => {
@@ -25,18 +29,73 @@ export default function StudentRegistration() {
       [e.target.name]: e.target.value,
     });
   };
+
+  // Validate form data before submission
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.entry.trim()) {
+      newErrors.entry = "Entry is required";
+    } 
+
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.password = "Passwords do not match";
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Confirm Password is required";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Confirm Password must be at least 8 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    console.log(formData);
+    // Regex for basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    // Determine if the entry is an email or a phone number
+    if (formData.entry.match(emailRegex)) {
+      setEmail(formData.entry);
+      setTel(null); // Clear tel if email is valid
+    } else {
+      setTel(formData.entry);
+      setEmail(null); // Clear email if tel is valid
+    }
+    console.log(email, tel);
+
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/students/register`,
+        {
+          tel: tel,
+          email: email,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword,
+        },
+      );
+      console.log(response.response);
+    } catch (error) {
+      setErrors(error?.response?.data?.errors);
+      console.log(error?.response?.data?.errors);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <>
       <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row font-sans overflow-x-hidden">
-        <style>{`
-        @keyframes bluePulse {
-          0% { box-shadow: 0 0 0px rgba(59, 130, 246, 0); border-color: transparent; }
-          50% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); border-color: #3b82f6; }
-          100% { box-shadow: 0 0 0px rgba(59, 130, 246, 0); border-color: transparent; }
-        }
-        .animate-glow { animation: bluePulse 0.8s ease-in-out 2; }
-      `}</style>
-
         {/* LEFT SIDE: Content Area */}
         <div className="w-full md:w-1/2 h-full bg-[#F4F4F4] flex flex-col justify-center relative px-6 py-10 lg:px-[100px] lg:py-[60px] order-2 md:order-1 overflow-y-auto">
           {/* 1. TOP NAV */}
@@ -61,17 +120,22 @@ export default function StudentRegistration() {
           {/* 2. CENTER PIECE */}
           <div className="flex flex-col items-center w-full">
             <div className="text-center mb-4">
-              <h1 className="text-3xl font-bold text-[#09314F]">Sign Up</h1>
-              <p className="text-gray-500 italic text-sm">Select a user-type</p>
+              <h1 className="text-3xl font-bold text-[#09314F]">
+                Student Registration
+              </h1>
+              <p className="text-gray-500 italic text-sm">
+                Register With E-Mail Address Or Phone Number
+              </p>
             </div>
 
             <div className="bg-white shadow-sm border border-gray-100 rounded-lg p-6 flex flex-col items-center w-full">
               {/* Continue Button (Desktop - Inside Card) */}
-              <div className="hidden md:block w-full mt-auto">
+              <div className="md:block w-full mt-auto">
                 <form
                   autoComplete="off"
                   action=""
                   method="post"
+                  onSubmit={handleSubmit}
                   className="space-y-5"
                 >
                   {/* Email Input or phone number */}
@@ -89,7 +153,7 @@ export default function StudentRegistration() {
                         errors.entry ? "border-red-500" : "border-gray-300"
                       } focus:ring-2 focus:ring-blue-900 focus:border-transparent`}
                     />
-                    {errors.email && (
+                    {errors.entry && (
                       <p className="mt-1 text-sm text-red-500">
                         {errors.entry}
                       </p>
@@ -184,7 +248,6 @@ export default function StudentRegistration() {
                   >
                     Register
                   </button>
-
                 </form>
               </div>
             </div>
