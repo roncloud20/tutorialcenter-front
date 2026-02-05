@@ -1,14 +1,16 @@
+import axios from "axios";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TC_logo from "../../../assets/images/tutorial_logo.png";
 import ReturnArrow from "../../../assets/svg/return arrow.svg";
 import signup_img from "../../../assets/images/student_sign_up.jpg";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
-import axios from "axios";
 
 export default function StudentRegistration() {
   const navigate = useNavigate(); // Initializing navigation
+  const [msg, setMsg] = useState("");
   const [tel, setTel] = useState(null);
+  const [toast, setToast] = useState(null);
   const [email, setEmail] = useState(null);
   const [errors, setErrors] = useState(""); // Initializing errors
   const [loading, setLoading] = useState(false); // loading for button press
@@ -36,27 +38,21 @@ export default function StudentRegistration() {
 
     if (!formData.entry.trim()) {
       newErrors.entry = "Entry is required";
-    } 
+    }
 
     if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.password = "Passwords do not match";
-      newErrors.confirmPassword = "Passwords do not match";
     }
 
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = "Confirm Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Confirm Password must be at least 8 characters";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -86,11 +82,31 @@ export default function StudentRegistration() {
         },
       );
       console.log(response.response);
+      if (response.status === 201) {
+        setToast({ type: "success", message: response.data.message });
+        if (email === null) {
+          setMsg(
+            "<span className='text-green-500'>Registration successful! Please check your phone for the OTP.</span>",
+          );
+          setInterval(() => {
+            navigate(`/register/student/phone/verify?tel=${tel}`);
+          }, 3000);
+        } else if (tel === null) {
+          setMsg(
+            "<span className='text-green-500'>Registration successful! Please check your email for the OTP.</span>",
+          );
+        }
+      }
     } catch (error) {
+        setToast({ type: "error", message: error?.response?.data?.message || "Registration failed." });
       setErrors(error?.response?.data?.errors);
+      setMsg(
+        `<span className='text-red-500'> ${error?.response?.data?.message || "An error occurred during registration."}</span>`,
+      );
       console.log(error?.response?.data?.errors);
     } finally {
       setLoading(false);
+      console.log(msg);
     }
   };
   return (
@@ -126,10 +142,24 @@ export default function StudentRegistration() {
               <p className="text-gray-500 italic text-sm">
                 Register With E-Mail Address Or Phone Number
               </p>
+              <h3
+                className="text-lg font-bold"
+                dangerouslySetInnerHTML={{ __html: msg }}
+              ></h3>
             </div>
 
             <div className="bg-white shadow-sm border border-gray-100 rounded-lg p-6 flex flex-col items-center w-full">
-              {/* Continue Button (Desktop - Inside Card) */}
+              <p>
+                {toast && (
+                  <div
+                    className={`fixed top-5 right-5 z-50 px-4 py-3 rounded shadow-lg text-white transition-all duration-300 ${
+                      toast.type === "success" ? "bg-green-600" : "bg-red-600"
+                    }`}
+                  >
+                    {toast.message}
+                  </div>
+                )}
+              </p>
               <div className="md:block w-full mt-auto">
                 <form
                   autoComplete="off"
