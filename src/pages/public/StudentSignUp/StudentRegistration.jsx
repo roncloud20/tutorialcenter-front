@@ -8,10 +8,9 @@ import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export default function StudentRegistration() {
   const navigate = useNavigate(); // Initializing navigation
-  const [msg, setMsg] = useState("");
   const [toast, setToast] = useState(null);
   const [errors, setErrors] = useState({}); // Initializing errors
-  const [msgType, setMsgType] = useState(""); // "success" | "error"
+  const [msg, setMsg] = useState({ text: "", type: "" });
   const [loading, setLoading] = useState(false); // loading for button press
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -79,18 +78,20 @@ export default function StudentRegistration() {
 
       if (response.status === 201) {
         setToast({ type: "success", message: response.data.message });
-        setMsgType("success");
         if (payload.tel) {
-          setMsg(
-            "Registration successful! Please check your phone for the OTP.",
-          );
+          setMsg({
+            text: "Registration successful! Please check your phone for the OTP.",
+            type: "success",
+          });
+
           setTimeout(() => {
             navigate(`/register/student/phone/verify?tel=${payload.tel}`);
           }, 3000);
         } else {
-          setMsg(
-            "Registration successful! Please check your email for the verification.",
-          );
+          setMsg({
+            text: "Registration successful! Please check your email.",
+            type: "success",
+          });
         }
       }
     } catch (error) {
@@ -98,8 +99,12 @@ export default function StudentRegistration() {
         type: "error",
         message: error?.response?.data?.message || "Registration failed.",
       });
-      setMsgType("error");
-      setMsg(error?.response?.data?.message || "Registration failed.");
+
+      setMsg({
+        text: error?.response?.data?.message || "Registration failed.",
+        type: "error",
+      });
+
       setErrors(error?.response?.data?.errors || {});
     } finally {
       setLoading(false);
@@ -139,18 +144,13 @@ export default function StudentRegistration() {
               <p className="text-gray-500 italic text-sm">
                 Register With E-Mail Address Or Phone Number
               </p>
-              {/* <h3 className="text-lg font-bold text-green-500">{msg}</h3> */}
-              {msg && (
+              {msg.text && (
                 <h3
                   className={`text-lg font-bold ${
-                    msgType === "success"
-                      ? "text-green-500"
-                      : msgType === "error"
-                        ? "text-red-500"
-                        : ""
+                    msg.type === "success" ? "text-green-500" : "text-red-500"
                   }`}
                 >
-                  {msg}
+                  {msg.text}
                 </h3>
               )}
             </div>
