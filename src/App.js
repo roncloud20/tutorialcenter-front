@@ -6,6 +6,7 @@ import { Route, Routes } from "react-router-dom";
 import StudentRegistration from "./pages/public/StudentSignUp/StudentRegistration.jsx";
 import StudentPhoneVerification from "./pages/public/StudentSignUp/StudentPhoneVerification.jsx";
 import StudentEmailVerification from "./pages/public/StudentSignUp/StudentEmailVerification.jsx";
+import StudentBiodata from "./pages/public/StudentSignUp/StudentBiodata.jsx";
 
 import StudentTrainingSelection from "./pages/public/StudentSignUp/StudentTrainingSelection.jsx";
 
@@ -21,6 +22,7 @@ function App() {
 
         {/* Student Public Routes */}
         <Route path="/register/student" element={<StudentRegistration />} />
+        <Route path="/register/student/biodata" element={<StudentBiodata/>} />
         <Route path="/register/student/phone/verify" element={<StudentPhoneVerification />} />
         <Route path="/register/student/email/verify" element={<StudentEmailVerification />} />
 
