@@ -22,9 +22,15 @@ export default function StudentPhoneVerification() {
     num5: "",
     num6: "",
   });
+  
+  // Redirect back to registration if no phone number is provided
+  useEffect(() => {
+    if (!tel) {
+      navigate("/register/student");
+    }
+  }, [tel, navigate]);
 
-  const API_BASE_URL =
-    process.env.REACT_APP_API_URL || "http://tutorialcenter-back.test";
+  const API_BASE_URL = process.env.REACT_APP_API_URL || "http://tutorialcenter-back.test";
 
   const inputRefs = {
     num1: useRef(null),
@@ -115,7 +121,7 @@ export default function StudentPhoneVerification() {
         setToast({ type: "success", message: response.data.message });
         setMsg(<span className="text-green-500">{response.data.message}</span>);
         setTimeout(() => {
-          navigate("/student/biodata");
+          navigate("register/student/biodata");
         }, 5000);
       }
     } catch (error) {
@@ -162,7 +168,7 @@ export default function StudentPhoneVerification() {
           {/* 1. TOP NAV */}
           <div className="relative w-full flex items-center justify-center mb-8 md:mb-10">
             <button
-              onClick={() => navigate("/student/register")}
+              onClick={() => navigate("/register/student")}
               className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
             >
               <img
