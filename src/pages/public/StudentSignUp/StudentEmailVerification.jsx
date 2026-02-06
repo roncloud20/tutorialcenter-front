@@ -6,18 +6,19 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import signup_img from "../../../assets/images/student_sign_up.jpg";
 
 export default function StudentEmailVerification() {
+  const API_BASE_URL = process.env.REACT_APP_API_URL || "http://tutorialcenter-back.test"; // Base URL for API
   const navigate = useNavigate(); // Initializing navigation
-  const [msg, setMsg] = useState("");
-  const [count, setCount] = useState(60);
+  const [msg, setMsg] = useState(""); // State for displaying messages
+  const [count, setCount] = useState(60); // Timer state for resend OTP
+  const [toast, setToast] = useState(null); // State for toast notifications
+  const [loading, setLoading] = useState(false); // Loading state for form submission
+
+  // Extract token and email from URL query parameters
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
-  const [toast, setToast] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const email = localStorage.getItem("email");
+  const email = searchParams.get("email");
 
-
-  const API_BASE_URL = process.env.REACT_APP_API_URL || "http://tutorialcenter-back.test";
-
+  // Timer effect for resend OTP functionality
   useEffect(() => {
     // 1. Only start timer if count is greater than 0
     if (count > 0) {
@@ -30,16 +31,10 @@ export default function StudentEmailVerification() {
     }
   }, [count]);
 
-  
-
-
-
   // Handle form submission and OTP verification
   const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    setLoading(true);
-
+    e.preventDefault(); // Prevent default form submission
+    setLoading(true); // Set loading state to true
     try {
       const response = await axios.post(
         `${API_BASE_URL}/api/students/verify-email`,
@@ -53,7 +48,7 @@ export default function StudentEmailVerification() {
         setMsg(<span className="text-green-500">{response.data.message}</span>);
         setTimeout(() => {
           navigate("/student/biodata");
-        }, 5000);
+        }, 3000);
       }
     } catch (error) {
       setToast({
@@ -148,7 +143,7 @@ export default function StudentEmailVerification() {
                     <p className="text-sm text-gray-500 mt-2">
                       We've sent an a link to{" "}
                       <span className="text-black font-semibold">
-                        student email {localStorage.getItem("email")}
+                       {email}
                       </span>
                     </p>
                     <p className="text-center text-sm text-red-500">{msg}</p>

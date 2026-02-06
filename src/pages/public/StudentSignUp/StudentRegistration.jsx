@@ -86,26 +86,23 @@ export default function StudentRegistration() {
         setToast({ type: "success", message: response.data.message });
         if (email === null) {
           setMsg(
-            "<span className='text-green-500'>Registration successful! Please check your phone for the OTP.</span>",
+            "Registration successful! Please check your phone for the OTP.",
           );
-          localStorage.setItem('tel', tel);
           setInterval(() => {
             navigate(`/register/student/phone/verify?tel=${tel}`);
-          }, 5000);
+          }, 3000);
         } else if (tel === null) {
-          localStorage.setItem('email', email);
           setMsg(
-            "<span className='text-green-500'>Registration successful! Please check your email for the OTP.</span>",
+            "Registration successful! Please check your email for the verification.",
           );
         }
       }
     } catch (error) {
-        setToast({ type: "error", message: error?.response?.data?.message || "Registration failed." });
+      setToast({
+        type: "error",
+        message: error?.response?.data?.message || "Registration failed.",
+      });
       setErrors(error?.response?.data?.errors);
-      setMsg(
-        `<span className='text-red-500'> ${error?.response?.data?.message || "An error occurred during registration."}</span>`,
-      );
-      console.log(error?.response?.data?.errors);
     } finally {
       setLoading(false);
       console.log(msg);
@@ -145,9 +142,10 @@ export default function StudentRegistration() {
                 Register With E-Mail Address Or Phone Number
               </p>
               <h3
-                className="text-lg font-bold"
-                dangerouslySetInnerHTML={{ __html: msg }}
-              ></h3>
+                className="text-lg font-bold text-green-500"
+              >
+                {msg}
+              </h3>
             </div>
 
             <div className="bg-white shadow-sm border border-gray-100 rounded-lg p-6 flex flex-col items-center w-full">
