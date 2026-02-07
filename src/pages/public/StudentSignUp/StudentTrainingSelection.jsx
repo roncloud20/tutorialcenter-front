@@ -50,7 +50,8 @@ export default function StudentTrainingSelection() {
 
     try {
       console.log("Selected trainings:", selectedTraining);
-      // navigate("/next-step");
+      localStorage.setItem("selectedTraining", JSON.stringify(selectedTraining));
+      navigate("/register/student/subject/selection");
     } finally {
       setLoading(false);
     }
