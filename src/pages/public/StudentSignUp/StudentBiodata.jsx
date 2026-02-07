@@ -7,7 +7,7 @@ import ReturnArrow from "../../../assets/svg/return arrow.svg";
 import signup_img from "../../../assets/images/student_sign_up.jpg";
 
 export default function StudentBiodata() {
-  console.table(location);
+  // console.table(location);
   const navigate = useNavigate(); // Initializing navigation
   const [toast, setToast] = useState(null); // Toast state for notifications
   const [errors, setErrors] = useState({}); // Initializing errors
@@ -15,7 +15,9 @@ export default function StudentBiodata() {
   const [loading, setLoading] = useState(false); // loading for button press
   const [formData, setFormData] = useState({
     firstname: "",
-    lastname: "",
+    surname: "",
+    email: null,
+    tel: null,
     gender: "",
     date_of_birth: "",
     location: "",
@@ -23,8 +25,13 @@ export default function StudentBiodata() {
     department: "",
   });
 
+  // Base URL for API, using environment variable with fallback
   const API_BASE_URL =
     process.env.REACT_APP_API_URL || "http://tutorialcenter-back.test";
+
+  // capture each user entries
+  const email = localStorage.getItem("studentEmail");
+  const tel = localStorage.getItem("studentTel");
 
   // Capture each user entries
   const handleChange = (e) => {
@@ -42,8 +49,8 @@ export default function StudentBiodata() {
       newErrors.firstname = "First name is required";
     }
 
-    if (!formData.lastname.trim()) {
-      newErrors.lastname = "Last name is required";
+    if (!formData.surname.trim()) {
+      newErrors.surname = "Last name is required";
     }
 
     if (!formData.gender) {
@@ -76,6 +83,26 @@ export default function StudentBiodata() {
 
     if (!validateForm()) return;
 
+    if (email) {
+      formData.email = email;
+    } else if (tel) {
+      formData.tel = tel;
+    } else {
+      setToast({
+        type: "error",
+        message: "No email or phone number found. Please start the registration process again.",
+      }); 
+      setMsg({
+        text: "No email or phone number found. Please start the registration process again.",
+        type: "error",
+      });
+
+      setTimeout(() => {
+        navigate("/register");
+      }, 5000);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -107,6 +134,7 @@ export default function StudentBiodata() {
       });
 
       setErrors(error?.response?.data?.errors || {});
+      console.log("Submission error:", error.response || error);
     } finally {
       setLoading(false);
     }
@@ -140,10 +168,10 @@ export default function StudentBiodata() {
           <div className="flex flex-col items-center w-full">
             <div className="text-center mb-4">
               <h1 className="text-3xl font-bold text-[#09314F]">
-                Student Registration
+                Student Biodata Registration
               </h1>
               <p className="text-gray-500 italic text-sm">
-                Register With E-Mail Address Or Phone Number
+                Complete your biodata registration for <span className="text-[#09314F]"> {email || tel} </span>.
               </p>
               {msg.text && (
                 <h3
@@ -196,22 +224,22 @@ export default function StudentBiodata() {
                     )}
                   </div>
 
-                  {/* Lastname */}
+                  {/* Surname */}
                   <div>
                     <label className="block text-sm font-medium text-blue-900 mb-2">
                       Last Name
                     </label>
                     <input
-                      name="lastname"
+                      name="surname"
                       type="text"
-                      value={formData.lastname}
+                      value={formData.surname}
                       onChange={handleChange}
                       className={`w-full px-4 py-2 border rounded-lg ${
-                        errors.lastname ? "border-red-500" : "border-gray-300"
+                        errors.surname ? "border-red-500" : "border-gray-300"
                       }`}
                     />
-                    {errors.lastname && (
-                      <p className="text-sm text-red-500">{errors.lastname}</p>
+                    {errors.surname && (
+                      <p className="text-sm text-red-500">{errors.surname}</p>
                     )}
                   </div>
 
@@ -344,7 +372,7 @@ export default function StudentBiodata() {
                       }`}
                     >
                       <option value="">Select Department</option>
-                      <option value="art">art</option>
+                      <option value="art">Art</option>
                       <option value="science">Science</option>
                       <option value="commercial">Commercial</option>
                     </select>

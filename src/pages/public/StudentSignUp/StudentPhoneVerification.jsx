@@ -120,8 +120,9 @@ export default function StudentPhoneVerification() {
       if (response.status === 200) {
         setToast({ type: "success", message: response.data.message });
         setMsg(<span className="text-green-500">{response.data.message}</span>);
+        localStorage.setItem("studentTel", tel); // Store phone number for later steps
         setTimeout(() => {
-          navigate("register/student/biodata");
+          navigate("/register/student/biodata");
         }, 5000);
       }
     } catch (error) {

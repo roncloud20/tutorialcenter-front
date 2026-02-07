@@ -46,8 +46,9 @@ export default function StudentEmailVerification() {
       if (response.status === 200) {
         setToast({ type: "success", message: response.data.message });
         setMsg(<span className="text-green-500">{response.data.message}</span>);
+        localStorage.setItem("studentEmail", email); // Store email for later steps
         setTimeout(() => {
-          navigate("/student/biodata");
+          navigate("/register/student/biodata");
         }, 3000);
       }
     } catch (error) {
