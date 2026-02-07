@@ -6,10 +6,6 @@ import axios from "axios";
 
 export const StudentTrainingDuration = () => {
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(false);
-    const [AvailableDuration, setAvailableDurations] = useState([]);
-    const [selectedDuration, setSelectedDuration] = useState(null);
-    const [durationError, setDurationError] = useState(false);
     
   return (
     <div>StudentTrainingDuration</div>

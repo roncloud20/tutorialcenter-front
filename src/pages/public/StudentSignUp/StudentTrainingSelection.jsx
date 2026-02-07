@@ -20,7 +20,7 @@ export default function StudentTrainingSelection() {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/courses`);
         setCourses(response?.data?.courses || []);
-        console.log(response?.data?.courses);
+        console.table(response?.data?.courses);
       } catch (error) {
         console.error("Failed to fetch courses", error);
       }
