@@ -6,7 +6,6 @@ import axios from "axios";
 
 export default function StudentTrainingSelection() {
   const navigate = useNavigate();
-
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState([]);
   const [examError, setExamError] = useState(false);
@@ -21,6 +20,7 @@ export default function StudentTrainingSelection() {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/courses`);
         setCourses(response?.data?.courses || []);
+        console.log(response?.data?.courses);
       } catch (error) {
         console.error("Failed to fetch courses", error);
       }
@@ -38,6 +38,8 @@ export default function StudentTrainingSelection() {
     );
   };
 
+
+
   /* ================= CONTINUE ================= */
   const handleContinue = async () => {
     if (selectedTraining.length === 0) {
@@ -50,7 +52,8 @@ export default function StudentTrainingSelection() {
 
     try {
       console.log("Selected trainings:", selectedTraining);
-      // navigate("/next-step");
+      localStorage.setItem('selectedTraining', JSON.stringify(selectedTraining));
+      navigate('/register/student/subjects/selection');
     } finally {
       setLoading(false);
     }
