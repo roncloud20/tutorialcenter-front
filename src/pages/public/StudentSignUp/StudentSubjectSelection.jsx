@@ -17,7 +17,6 @@ export const StudentSubjectSelection = () => {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   /* ================= HELPERS ================= */
@@ -28,17 +27,15 @@ export const StudentSubjectSelection = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        const storedTraining = JSON.parse(
-          localStorage.getItem("selectedTraining")
-        );
         const studentData = JSON.parse(localStorage.getItem("studentdata"));
 
-        if (!storedTraining?.length || !studentData?.department) {
+        const storedTraining = studentData?.selectedTraining;
+        const department = studentData?.data?.department;
+
+        if (!storedTraining?.length || !department) {
           navigate("/register/student/training/selection");
           return;
         }
-
-        const department = studentData.department;
 
         const courseRes = await axios.get(`${API_BASE_URL}/api/courses`);
         const allCourses = courseRes.data.courses || [];
@@ -112,11 +109,26 @@ export const StudentSubjectSelection = () => {
   /* ================= FINAL CONFIRM ================= */
   const handleProceed = () => {
     setLoading(true);
-    localStorage.setItem(
-      "trainingSubjects",
-      JSON.stringify(selectedSubjects)
-    );
-    navigate("/register/student/training/duration");
+
+    try {
+      const studentData = JSON.parse(localStorage.getItem("studentdata"));
+
+      const updatedStudentData = {
+        ...studentData,
+        selectedSubjects, // ✅ stored here
+      };
+
+      localStorage.setItem(
+        "studentdata",
+        JSON.stringify(updatedStudentData)
+      );
+
+      navigate("/register/student/training/duration");
+    } catch (err) {
+      console.error("Failed to store selected subjects", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

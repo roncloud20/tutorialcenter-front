@@ -33,9 +33,8 @@ export const StudentTrainingDuration = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        const selectedTraining = JSON.parse(
-          localStorage.getItem("selectedTraining")
-        );
+        const studentData = JSON.parse(localStorage.getItem("studentdata"));
+        const selectedTraining = studentData?.selectedTraining;
 
         if (!selectedTraining?.length) {
           navigate("/register/student/training/selection");
@@ -51,7 +50,6 @@ export const StudentTrainingDuration = () => {
 
         setCourses(activeCourses);
 
-        // Initialize empty selections
         const initMap = {};
         activeCourses.forEach((c) => {
           initMap[c.id] = null;
@@ -99,9 +97,17 @@ export const StudentTrainingDuration = () => {
     }
 
     setError(false);
+
+    const studentdata = JSON.parse(localStorage.getItem("studentdata"));
+
+    const updatedStudentData = {
+      ...studentdata,
+      selectedDurations, // ✅ stored here
+    };
+
     localStorage.setItem(
-      "trainingDurations",
-      JSON.stringify(selectedDurations)
+      "studentdata",
+      JSON.stringify(updatedStudentData)
     );
 
     navigate("/register/student/training/payment");
@@ -123,19 +129,20 @@ export const StudentTrainingDuration = () => {
           Select Training Duration
         </h1>
 
-        {/* TABLE HEADER */}
         <div className="grid grid-cols-3 bg-[#09314F] text-white text-sm font-bold rounded-t-lg">
           <div className="p-2">Course</div>
           <div className="p-2">Duration</div>
           <div className="p-2 text-right">Price (₦)</div>
         </div>
 
-        {/* ROWS */}
         {courses.map((course) => {
           const selected = selectedDurations[course.id];
 
           return (
-            <div key={course.id} className="grid grid-cols-3 gap-4 items-center border-b py-4 text-sm">
+            <div
+              key={course.id}
+              className="grid grid-cols-3 gap-4 items-center border-b py-4 text-sm"
+            >
               <div className="font-semibold text-[#09314F]">
                 {course.title}
               </div>
@@ -164,7 +171,6 @@ export const StudentTrainingDuration = () => {
           );
         })}
 
-        {/* TOTAL */}
         <div className="flex justify-between mt-6 font-bold text-lg text-[#09314F]">
           <span>Total</span>
           <span>₦{totalAmount.toLocaleString()}</span>
