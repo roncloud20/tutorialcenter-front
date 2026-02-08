@@ -15,6 +15,11 @@ export const StudentTrainingPayment = () => {
   const [showModal, setShowModal] = useState(false);
   const [processing, setProcessing] = useState(false);
 
+  // Base URL for API, using environment variable with fallback
+  const API_BASE_URL =
+    process.env.REACT_APP_API_URL || "http://tutorialcenter-back.test";
+    
+
   /* ================= INIT ================= */
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("studentdata"));
@@ -55,63 +60,106 @@ export const StudentTrainingPayment = () => {
 
   /* ================= PAYSTACK SUCCESS ================= */
   const handlePaystackSuccess = async (response) => {
-    try {
-      setProcessing(true);
+    if (!studentData) return;
 
+    setProcessing(true);
+
+    try {
       const studentId = studentData.data.id;
       const selectedSubjects = studentData.selectedSubjects;
 
+      // Loop through courses sequentially
       for (const [courseId, duration] of Object.entries(selectedDurations)) {
-        /* ===== COURSE ENROLLMENT ===== */
-        const courseEnrollRes = await axios.post("/course/enrollment", {
-          student_id: studentId,
-          course_id: Number(courseId),
-          billing_cycle: duration.duration,
-        });
+        console.log(`Starting enrollment for course ${courseId}...`);
 
-        const courseEnrollmentId = courseEnrollRes.data.id;
-
-        /* ===== SUBJECT ENROLLMENT ===== */
+        // 1️⃣ COURSE ENROLLMENT
+        let courseEnrollmentId;
+        try {
+          const courseRes = await axios.post(
+            `${API_BASE_URL}/api/course/enrollment`,
+            {
+              student_id: studentId,
+              course_id: Number(courseId),
+              billing_cycle: duration.duration,
+            },
+          );
+          courseEnrollmentId = courseRes.data.enrollment.id;
+          console.log(
+            `Course ${courseId} enrolled successfully with ID ${courseEnrollmentId}`,
+          );
+        } catch (err) {
+          console.error(
+            `Course enrollment failed for course ${courseId}:`,
+            err.response?.data || err,
+          );
+          alert(
+            `Enrollment failed for course ${courseId}. Skipping to next course.`,
+          );
+          continue; // Skip to next course
+        }
+        const paymentReference = `TC-${Date.now()}-${courseId}-${Math.floor(Math.random() * 1000)}`;
+        // 2️⃣ SUBJECT ENROLLMENT (sequentially)
         const subjects = selectedSubjects?.[courseId] || [];
-
         for (const subjectId of subjects) {
-          await axios.post("/subject/enrollment", {
-            student_id: studentId,
-            course_enrollment_id: courseEnrollmentId,
-            subject_id: subjectId,
-          });
+          try {
+            await axios.post(`${API_BASE_URL}/api/subject/enrollment`, {
+              student_id: studentId,
+              course_enrollment_id: courseEnrollmentId,
+              subject_id: subjectId,
+            });
+            console.log(`Subject ${subjectId} enrolled successfully`);
+          } catch (err) {
+            console.error(
+              `Subject enrollment failed for subject ${subjectId}:`,
+              err.response?.data || err,
+            );
+            alert(`Enrollment failed for subject ${subjectId}.`);
+          }
         }
 
-        /* ===== PAYMENT RECORD ===== */
-        await axios.post("/payments", {
-          student_id: studentId,
-          course_enrollment_id: courseEnrollmentId,
-          amount: duration.price,
-          billing_cycle: duration.duration,
-          payment_method: "card",
-          gateway: "paystack",
-          status: "successful",
-          gateway_reference: response.reference,
-          meta: {
-            channel: response.channel,
-            paid_at: response.paid_at,
-          },
-        });
+        
+
+        // 3️⃣ PAYMENT RECORD
+        try {
+          await axios.post(`${API_BASE_URL}/api/payments`, {
+            student_id: studentId,
+            course_enrollment_id: courseEnrollmentId,
+            amount: duration.price,
+            billing_cycle: duration.duration,
+            payment_method: "card",
+            gateway: "paystack",
+            status: "successful",
+            gateway_reference: paymentReference,
+            paid_at: Date.now(),
+            // gateway_reference: response.reference,
+            meta: {
+              channel: response.channel,
+              paid_at: response.paid_at,
+            },
+          });
+          console.log(`Payment recorded for course ${courseId}`);
+        } catch (err) {
+          console.error(
+            `Payment recording failed for course ${courseId}:`,
+            err.response?.data || err,
+          );
+          alert(
+            `Payment was successful for course ${courseId}, but logging failed.`,
+          );
+        }
       }
 
-      /* ===== CLEANUP ===== */
+      // Cleanup
       localStorage.removeItem("studentdata");
-
-      navigate("/student/dashboard");
+      navigate("/student/login");
     } catch (err) {
-      console.error("Payment/Enrollment failed:", err);
-      alert("Payment was successful, but enrollment failed. Please contact support.");
+      console.error("Unexpected error during enrollment/payment:", err);
+      alert("An unexpected error occurred. Please contact support.");
     } finally {
       setProcessing(false);
       closeModal();
     }
   };
-
   return (
     <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row">
       {/* LEFT */}
