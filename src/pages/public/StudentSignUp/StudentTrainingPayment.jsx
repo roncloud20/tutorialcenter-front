@@ -150,7 +150,9 @@ export const StudentTrainingPayment = () => {
       }
 
       // Cleanup
+      localStorage.removeItem("studentEmail");
       localStorage.removeItem("studentdata");
+      localStorage.removeItem("studentTel");
       navigate("/student/login");
     } catch (err) {
       console.error("Unexpected error during enrollment/payment:", err);
