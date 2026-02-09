@@ -120,7 +120,7 @@ export default function StudentBiodata() {
           type: "success",
         });
         console.log(response?.data?.student);
-        localStorage.setItem('studentdata', JSON.stringify(response?.data?.student));
+        localStorage.setItem('studentdata', JSON.stringify({data: response?.data?.student}));
         setTimeout(()=>{
           navigate('/register/student/training/selection');
         },2000)

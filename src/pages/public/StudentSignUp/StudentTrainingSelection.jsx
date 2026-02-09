@@ -20,7 +20,7 @@ export default function StudentTrainingSelection() {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/courses`);
         setCourses(response?.data?.courses || []);
-        console.log(response?.data?.courses);
+        console.table(response?.data?.courses);
       } catch (error) {
         console.error("Failed to fetch courses", error);
       }
@@ -42,22 +42,63 @@ export default function StudentTrainingSelection() {
 
   /* ================= CONTINUE ================= */
   const handleContinue = async () => {
-    if (selectedTraining.length === 0) {
-      setExamError(true);
-      return;
+  if (selectedTraining.length === 0) {
+    setExamError(true);
+    return;
+  }
+
+  setExamError(false);
+  setLoading(true);
+
+  try {
+    // 1️⃣ Read existing student data
+    const studentData = JSON.parse(
+      localStorage.getItem("studentdata")
+    );
+
+    if (!studentData) {
+      throw new Error("Student data not found in localStorage");
     }
 
-    setExamError(false);
-    setLoading(true);
+    // 2️⃣ Attach selected trainings
+    const updatedStudentData = {
+      ...studentData,
+      selectedTraining, // 👈 stored here
+    };
 
-    try {
-      console.log("Selected trainings:", selectedTraining);
-      localStorage.setItem("selectedTraining", JSON.stringify(selectedTraining));
-      navigate("/register/student/subject/selection");
-    } finally {
-      setLoading(false);
-    }
-  };
+    // 3️⃣ Save back to localStorage
+    localStorage.setItem(
+      "studentdata",
+      JSON.stringify(updatedStudentData)
+    );
+
+    console.log("Updated studentdata:", updatedStudentData);
+
+    navigate("/register/student/subject/selection");
+  } catch (error) {
+    console.error("Failed to save training selection", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // const handleContinue = async () => {
+  //   if (selectedTraining.length === 0) {
+  //     setExamError(true);
+  //     return;
+  //   }
+
+  //   setExamError(false);
+  //   setLoading(true);
+
+  //   try {
+  //     console.log("Selected trainings:", selectedTraining);
+  //     localStorage.setItem("selectedTraining", JSON.stringify(selectedTraining));
+  //     navigate("/register/student/subject/selection");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   return (
     <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row bg-[#F4F4F4] font-sans overflow-x-hidden">
@@ -77,7 +118,7 @@ export default function StudentTrainingSelection() {
           {/* HEADER */}
           <div className="relative w-full flex items-center justify-center mb-6 mt-4">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/register/student/biodata')}
               className="absolute left-0 p-2 hover:bg-gray-200 rounded-full"
             >
               <img

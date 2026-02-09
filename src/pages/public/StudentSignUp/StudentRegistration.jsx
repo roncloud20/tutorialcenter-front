@@ -157,7 +157,7 @@ export default function StudentRegistration() {
 
             <div className="bg-white shadow-sm border border-gray-100 rounded-lg p-6 flex flex-col items-center w-full">
               {/* Toast */}
-              <p>
+              <div>
                 {toast && (
                   <div
                     className={`fixed top-5 right-5 z-50 px-4 py-3 rounded shadow-lg text-white transition-all duration-300 ${
@@ -167,7 +167,7 @@ export default function StudentRegistration() {
                     {toast.message}
                   </div>
                 )}
-              </p>
+              </div>
               <div className="md:block w-full mt-auto">
                 <form
                   autoComplete="off"

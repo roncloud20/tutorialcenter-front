@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import TC_logo from "../../../assets/images/tutorial_logo.png";
 import ReturnArrow from "../../../assets/svg/return arrow.svg";
 import signup_img from "../../../assets/images/student_sign_up.jpg";
@@ -17,6 +17,7 @@ export const StudentSubjectSelection = () => {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   /* ================= HELPERS ================= */
   const getSubjectLimit = (courseTitle) =>
@@ -26,35 +27,31 @@ export const StudentSubjectSelection = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        const storedTraining = JSON.parse(
-          localStorage.getItem("selectedTraining"),
-        );
         const studentData = JSON.parse(localStorage.getItem("studentdata"));
 
-        if (!storedTraining?.length || !studentData?.department) {
+        const storedTraining = studentData?.selectedTraining;
+        const department = studentData?.data?.department;
+
+        if (!storedTraining?.length || !department) {
           navigate("/register/student/training/selection");
           return;
         }
 
-        const department = studentData.department;
-
-        /* Fetch all courses */
         const courseRes = await axios.get(`${API_BASE_URL}/api/courses`);
         const allCourses = courseRes.data.courses || [];
 
         const activeCourses = allCourses.filter((c) =>
-          storedTraining.includes(c.id),
+          storedTraining.includes(c.id)
         );
 
         setSelectedCourses(activeCourses);
 
-        /* Fetch subjects per course */
         const subjectMap = {};
         const selectionMap = {};
 
         for (const course of activeCourses) {
           const res = await axios.get(
-            `${API_BASE_URL}/api/courses/${course.id}/subjects/${department}`,
+            `${API_BASE_URL}/api/courses/${course.id}/subjects/${department}`
           );
 
           subjectMap[course.id] = res.data.subjects || [];
@@ -72,18 +69,16 @@ export const StudentSubjectSelection = () => {
   }, [navigate, API_BASE_URL]);
 
   /* ================= SUBJECT TOGGLE ================= */
-  const toggleSubject = (courseId, subject) => {
+  const toggleSubject = (courseId, subjectId) => {
     setSelectedSubjects((prev) => {
       const current = prev[courseId] || [];
       const course = selectedCourses.find((c) => c.id === courseId);
       const limit = getSubjectLimit(course.title);
 
-      const exists = current.some((s) => s.id === subject.id);
-
-      if (exists) {
+      if (current.includes(subjectId)) {
         return {
           ...prev,
-          [courseId]: current.filter((s) => s.id !== subject.id),
+          [courseId]: current.filter((id) => id !== subjectId),
         };
       }
 
@@ -91,7 +86,7 @@ export const StudentSubjectSelection = () => {
 
       return {
         ...prev,
-        [courseId]: [...current, subject],
+        [courseId]: [...current, subjectId],
       };
     });
   };
@@ -99,7 +94,7 @@ export const StudentSubjectSelection = () => {
   /* ================= CONTINUE ================= */
   const handleContinue = () => {
     const valid = selectedCourses.every(
-      (course) => selectedSubjects[course.id]?.length > 0,
+      (course) => selectedSubjects[course.id]?.length > 0
     );
 
     if (!valid) {
@@ -108,103 +103,112 @@ export const StudentSubjectSelection = () => {
     }
 
     setError(false);
+    setShowConfirmModal(true);
+  };
+
+  /* ================= FINAL CONFIRM ================= */
+  const handleProceed = () => {
     setLoading(true);
 
-    localStorage.setItem("trainingSubjects", JSON.stringify(selectedSubjects));
+    try {
+      const studentData = JSON.parse(localStorage.getItem("studentdata"));
 
-    navigate("/training-duration");
+      const updatedStudentData = {
+        ...studentData,
+        selectedSubjects, // ✅ stored here
+      };
+
+      localStorage.setItem(
+        "studentdata",
+        JSON.stringify(updatedStudentData)
+      );
+
+      navigate("/register/student/training/duration");
+    } catch (err) {
+      console.error("Failed to store selected subjects", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <>
       <div className="w-full min-h-screen md:h-screen flex flex-col md:flex-row font-sans overflow-x-hidden">
-        {/* LEFT SIDE: Content Area */}
-        <div className="w-full md:w-1/2 h-full bg-[#F4F4F4] flex flex-col justify-center relative px-6 py-10 lg:px-[100px] lg:py-[60px] order-2 md:order-1 overflow-y-auto">
-          {/* 1. TOP NAV */}
-          <div className="relative w-full flex items-center justify-center mb-8 md:mb-10">
+        {/* LEFT */}
+        <div className="w-full md:w-1/2 bg-[#F4F4F4] px-6 py-10 lg:px-[100px]">
+          <div className="relative flex justify-center mb-6">
             <button
-              onClick={() => navigate("/register/student")}
-              className="absolute left-0 p-2 hover:bg-gray-200 rounded-full transition-all z-10"
+              onClick={() => navigate("/register/student/training/selection")}
+              className="absolute left-0 p-2"
             >
-              <img
-                src={ReturnArrow}
-                alt="Back"
-                className="h-6 w-6 lg:h-5 lg:w-5"
-              />
+              <img src={ReturnArrow} alt="Back" className="h-6 w-6" />
             </button>
-            <img
-              src={TC_logo}
-              alt="Logo"
-              className="h-[60px] md:h-[80px] w-auto object-contain"
-            />
+            <img src={TC_logo} alt="Logo" className="h-[70px]" />
           </div>
 
-          {/* 2. CENTER PIECE */}
-          <div className="flex flex-col items-center w-full">
-            <div className="text-center mb-4">
-              <h1 className="text-2xl font-bold text-[#09314F]">
-                Subject Selection
-              </h1>
-            </div>
-          </div>
+          <h1 className="text-center text-2xl font-bold text-[#09314F] mb-6">
+            Subject Selection
+          </h1>
 
           <div className="grid grid-cols-3 bg-[#09314F] text-white text-sm font-bold rounded-t-lg">
-            <div className="p-2">Examination</div>
+            <div className="p-2">Courses</div>
             <div className="p-2">Subjects</div>
             <div className="p-2 text-right">Number</div>
           </div>
 
           {selectedCourses.map((course) => {
-            const selected = selectedSubjects[course.id] || [];
+            const selectedIds = selectedSubjects[course.id] || [];
+            const subjects = subjectsByCourse[course.id] || [];
             const limit = getSubjectLimit(course.title);
             const isOpen = openDropdown === course.id;
 
             return (
               <div key={course.id} className="border-b py-4">
                 <div className="grid grid-cols-3 gap-4 items-center">
-                  <div className="font-semibold text-[#09314F]">
-                    {course.title}
-                  </div>
+                  <div className="font-semibold">{course.title}</div>
 
                   <div className="relative">
                     <button
-                      onClick={() => setOpenDropdown(isOpen ? null : course.id)}
+                      onClick={() =>
+                        setOpenDropdown(isOpen ? null : course.id)
+                      }
                       className="w-full bg-gray-300 px-3 py-2 rounded text-xs flex justify-between"
                     >
-                      {selected.length
-                        ? selected
+                      {selectedIds.length
+                        ? subjects
+                            .filter((s) => selectedIds.includes(s.id))
                             .map((s) => s.name)
                             .slice(0, 2)
-                            .join(", ") + (selected.length > 2 ? "..." : "")
+                            .join(", ") +
+                          (selectedIds.length > 2 ? "..." : "")
                         : "Select subjects"}
                       <span>{isOpen ? "▲" : "▼"}</span>
                     </button>
 
                     {isOpen && (
                       <div className="absolute z-10 w-full bg-white border rounded shadow max-h-60 overflow-y-auto">
-                        {subjectsByCourse[course.id]?.map((subject) => {
-                          const isSelected = selected.some(
-                            (s) => s.id === subject.id,
-                          );
+                        {subjects.map((subject) => {
+                          const isSelected = selectedIds.includes(subject.id);
                           const disabled =
-                            !isSelected && selected.length >= limit;
+                            !isSelected && selectedIds.length >= limit;
 
                           return (
                             <button
                               key={subject.id}
                               disabled={disabled}
-                              onClick={() => toggleSubject(course.id, subject)}
+                              onClick={() =>
+                                toggleSubject(course.id, subject.id)
+                              }
                               className={`w-full px-4 py-2 text-left text-sm
                                 ${
                                   isSelected
                                     ? "bg-green-500 text-white"
                                     : disabled
-                                      ? "bg-gray-200 text-gray-400"
-                                      : "hover:bg-gray-100"
+                                    ? "bg-gray-200 text-gray-400"
+                                    : "hover:bg-gray-100"
                                 }`}
                             >
-                              {subject.name}
-                              {isSelected && " ✓"}
+                              {subject.name} {isSelected && "✓"}
                             </button>
                           );
                         })}
@@ -213,7 +217,7 @@ export const StudentSubjectSelection = () => {
                   </div>
 
                   <div className="text-right font-semibold">
-                    {selected.length} / {limit}
+                    {selectedIds.length} / {limit}
                   </div>
                 </div>
               </div>
@@ -222,37 +226,79 @@ export const StudentSubjectSelection = () => {
 
           {error && (
             <p className="text-red-500 text-xs text-center mt-4">
-              Please select at least one subject for each examination
+              Please select at least one subject for each course
             </p>
           )}
 
           <button
             onClick={handleContinue}
-            disabled={loading}
             className="mt-6 w-full py-3 rounded bg-gradient-to-r from-[#09314F] to-[#E83831] text-white"
           >
-            {loading ? "Loading..." : "Continue"}
+            Continue
           </button>
         </div>
-      
 
-        {/* RIGHT SIDE: The Visual Image */}
+        {/* RIGHT */}
         <div
-          className="w-full h-[192px] md:w-1/2 md:h-full bg-cover bg-center relative bg-gray-300 order-1 md:order-2"
+          className="w-full md:w-1/2 bg-cover bg-center"
           style={{ backgroundImage: `url(${signup_img})` }}
-        >
-          {/* Login Button */}
-          <div className="hidden md:block absolute bottom-[60px] left-0">
-            <button
-              onClick={() => navigate("/login")}
-              className="px-8 py-3 bg-white text-[#09314F] font-bold hover:bg-gray-100 transition-all shadow-md"
-              style={{ borderRadius: "0px 20px 20px 0px" }}
-            >
-              Login
-            </button>
+        />
+      </div>
+
+      {/* ================= CONFIRMATION MODAL ================= */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white w-[90%] max-w-2xl rounded-lg p-6">
+            <h2 className="text-xl font-bold text-[#09314F] mb-4">
+              Confirm Your Subject Selection
+            </h2>
+
+            <table className="w-full text-sm border">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-2 border text-left">Course</th>
+                  <th className="p-2 border text-left">Subjects</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedCourses.map((course) => {
+                  const subjects =
+                    subjectsByCourse[course.id]?.filter((s) =>
+                      selectedSubjects[course.id]?.includes(s.id)
+                    ) || [];
+
+                  return (
+                    <tr key={course.id}>
+                      <td className="p-2 border font-semibold">
+                        {course.title}
+                      </td>
+                      <td className="p-2 border">
+                        {subjects.map((s) => s.name).join(", ")}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            <div className="flex justify-end gap-4 mt-6">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="px-4 py-2 border rounded"
+              >
+                Make Changes
+              </button>
+              <button
+                onClick={handleProceed}
+                disabled={loading}
+                className="px-6 py-2 bg-[#09314F] text-white rounded"
+              >
+                {loading ? "Processing..." : "Proceed"}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 };
