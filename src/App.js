@@ -12,6 +12,7 @@ import { StudentSubjectSelection } from "./pages/public/StudentSignUp/StudentSub
 import { StudentTrainingDuration } from "./pages/public/StudentSignUp/StudentTrainingDuration.jsx";
 import { StudentTrainingPayment } from "./pages/public/StudentSignUp/StudentTrainingPayment.jsx";
 import StudentLogin from "./pages/public/StudentLogin.jsx";
+import StudentDashboard from "./pages/students/StudentDashboard.jsx";
 
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
 
         {/* Student Public Registration Routes */}
         <Route path="/student/login" element={<StudentLogin/>} />
+        <Route path="/student/dashboard" element={<StudentDashboard/> }/>
         <Route path="/register/student" element={<StudentRegistration />} />
         <Route path="/register/student/biodata" element={<StudentBiodata/>} />
         <Route path="/register/student/phone/verify" element={<StudentPhoneVerification />} />
