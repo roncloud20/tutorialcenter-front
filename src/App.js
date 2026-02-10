@@ -15,8 +15,12 @@ import { StudentSubjectSelection } from "./pages/public/StudentSignUp/StudentSub
 
 import { StudentTrainingDuration } from "./pages/public/StudentSignUp/StudentTrainingDuration.jsx";
 import { StudentTrainingPayment } from "./pages/public/StudentSignUp/StudentTrainingPayment.jsx";
-import { GuardianRegistration } from "./pages/public/GuardianSignup/GuardianRegistration.jsx";
-import {GuardianPhoneVerification} from "./pages/public/GuardianSignup/GuardianPhoneVerification.jsx";
+import StudentLogin from "./pages/public/StudentLogin.jsx";
+import StudentDashboard from "./pages/students/StudentDashboard.jsx";
+import ComingSoon from "./pages/public/ComingSoon.jsx";
+import Unauthorized from "./pages/public/Unauthorized.jsx";
+import NotFound from "./pages/public/NotFound.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 
 function App() {
@@ -24,14 +28,17 @@ function App() {
     <>
       <Routes>
         {/* Public Routes */}
+        <Route path="*" element={<NotFound/>} />
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/about" element={<About />} />
         <Route path="/register" element={<SignUp />} />
+        <Route path="/comingsoon" element={<ComingSoon/>} />
+        <Route path="/unauthorized" element={<Unauthorized/>} />
 
         {/* Student Public Registration Routes */}
         <Route path="/student/login" element={<StudentLogin/>} />
-        <Route path="/student/dashboard" element={<StudentDashboard/> }/>
+        {/* <Route path="/student/dashboard" element={<StudentDashboard/> }/> */}
         <Route path="/register/student" element={<StudentRegistration />} />
         <Route path="/register/student/biodata" element={<StudentBiodata/>} />
         <Route path="/register/student/phone/verify" element={<StudentPhoneVerification />} />
@@ -41,11 +48,10 @@ function App() {
         <Route path = "/register/student/training/duration" element={<StudentTrainingDuration />} />
         <Route path = "/register/student/training/payment" element={<StudentTrainingPayment />} />
 
-
-        {/* Guardian Public Registration Routes */}
-        <Route path="/register/guardian" element={<GuardianRegistration />} />
-        <Route path="/register/guardian/phone/verify" element={<GuardianPhoneVerification />} />
-        
+        {/* Student Protected Routes */}
+        <Route element={<ProtectedRoute />}>
+        <Route path="/student/dashboard" element={<StudentDashboard/> }/>
+        </Route>
       </Routes>
     </>
   );
