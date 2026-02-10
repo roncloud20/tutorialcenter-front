@@ -13,6 +13,7 @@ import {
   ArrowRightOnRectangleIcon,
   SunIcon,
   MoonIcon,
+  PuzzlePieceIcon,
 } from "@heroicons/react/24/outline";
 
 import { useTheme } from "../../context/ThemeContext";
@@ -27,6 +28,7 @@ const menuItems = [
   { label: "Calendar", icon: CalendarDaysIcon },
   { label: "Assessment", icon: ChartBarIcon },
   { label: "Payment", icon: CreditCardIcon },
+  { label: "Games", icon: PuzzlePieceIcon },
   { label: "Settings", icon: Cog6ToothIcon },
   { label: "Help", icon: QuestionMarkCircleIcon },
 ];
@@ -70,6 +72,18 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         </button>
       </div>
 
+      {/* Avatar */}
+      <div className="flex px-3 space-y-1 flex-wrap justify-between items-center">
+        <img
+          src={collapselogo}
+          alt="Avatar"
+          className="rounded-full shadow-lg h-10 w-10 object-fit-contain border border-6 border-yellow-400"
+        />
+        <div>
+          <h6 className="text-yellow-400">Hello Student</h6>
+          <h3 className="font-bold dark:text-gray-50">Caleb Samuel Thomas</h3>
+        </div>
+      </div>
       {/* Menu */}
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
         {menuItems.map(({ label, icon: Icon }) => (
@@ -110,7 +124,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
               }
             `}
           >
-            <SunIcon className="w-4 h-4" />
+            <SunIcon className={`${collapsed ? "w-2 h-2" : "w-4 h-4"}`} />
             {!collapsed && <span className="text-xs">Light</span>}
           </button>
 
@@ -126,7 +140,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
               }
             `}
           >
-            <MoonIcon className="w-4 h-4" />
+            <MoonIcon className={`${collapsed ? "w-2 h-2" : "w-4 h-4"}`} />
             {!collapsed && <span className="text-xs">Dark</span>}
           </button>
         </div>
