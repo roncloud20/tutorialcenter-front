@@ -11,6 +11,8 @@ import StudentTrainingSelection from "./pages/public/StudentSignUp/StudentTraini
 import StudentTrainingDuration from "./pages/public/StudentSignUp/StudentTrainingDuration.jsx";
 import StudentPaymentSelection from "./pages/public/StudentSignUp/StudentPaymentSelection.jsx";
 import { StudentSubjectSelection } from "./pages/public/StudentSignUp/StudentSubjectSelection.jsx";
+
+
 import { StudentTrainingDuration } from "./pages/public/StudentSignUp/StudentTrainingDuration.jsx";
 import { StudentTrainingPayment } from "./pages/public/StudentSignUp/StudentTrainingPayment.jsx";
 import { GuardianRegistration } from "./pages/public/GuardianSignup/GuardianRegistration.jsx";
@@ -28,6 +30,8 @@ function App() {
         <Route path="/register" element={<SignUp />} />
 
         {/* Student Public Registration Routes */}
+        <Route path="/student/login" element={<StudentLogin/>} />
+        <Route path="/student/dashboard" element={<StudentDashboard/> }/>
         <Route path="/register/student" element={<StudentRegistration />} />
         <Route path="/register/student/biodata" element={<StudentBiodata/>} />
         <Route path="/register/student/phone/verify" element={<StudentPhoneVerification />} />
