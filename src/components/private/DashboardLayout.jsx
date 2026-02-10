@@ -1,8 +1,8 @@
 import {  useState } from "react";
-import Sidebar from "./Sidebar";
-import RightPanel from "./RightPanel";
-import MobileHeader from "./MobileHeader";
-import MobileBottomNav from "./MobileBottomNav";
+import Sidebar from "./Sidebar.jsx";
+import RightPanel from "./RightPanel.jsx";
+import MobileHeader from "./MobileHeader.jsx";
+import MobileBottomNav from "./MobileBottomNav.jsx";
 
 export default function DashboardLayout({ children }) {
   
