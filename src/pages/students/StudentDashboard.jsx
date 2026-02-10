@@ -4,7 +4,7 @@ import DashboardLayout from "../../components/private/DashboardLayout";
 export default function StudentDashboard() {
   return (
     <DashboardLayout>
-      <h1 className="text-xl font-semibold mb-6">Dashboard</h1>
+      <h1 className="text-xl font-semibold mb-6 dark:text-white">Dashboard</h1>
 
       <div className="grid grid-cols-2 gap-6">
         <ProgressCard

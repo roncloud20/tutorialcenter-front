@@ -7,7 +7,7 @@ export default function DashboardLayout({ children }) {
   const [rightCollapsed, setRightCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       {/* Left Sidebar */}
       <Sidebar
         collapsed={leftCollapsed}

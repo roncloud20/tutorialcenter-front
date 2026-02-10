@@ -10,9 +10,14 @@ import {
   QuestionMarkCircleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ArrowRightOnRectangleIcon,
+  SunIcon,
+  MoonIcon,
 } from "@heroicons/react/24/outline";
 
+import { useTheme } from "../../context/ThemeContext";
 import logo from "../../assets/images/tutorial_logo.png";
+import collapselogo from "../../assets/images/TC 1.png";
 
 const menuItems = [
   { label: "Dashboard", icon: HomeIcon },
@@ -27,51 +32,57 @@ const menuItems = [
 ];
 
 export default function Sidebar({ collapsed, setCollapsed }) {
+  const { theme, setTheme } = useTheme();
+
   return (
     <aside
       className={`
-        fixed top-0 left-0 z-40 h-screen bg-white border-r
+        fixed top-0 left-0 z-40 h-screen
+        bg-white dark:bg-gray-900
+        border-r dark:border-gray-800
         transition-all duration-300
         ${collapsed ? "w-20" : "w-64"}
         flex flex-col
       `}
     >
-      {/* Logo + Toggle */}
-      <div className="flex items-center gap-3 p-4">
-        {!collapsed && (
-          <div className="border rounded-lg p-2 flex-1">
-            <img src={logo} alt="TC Logo" />
-          </div>
-        )}
+      {/* Logo */}
+      <div className="relative flex items-center justify-center p-4">
+        <img
+          src={collapsed ? collapselogo : logo}
+          alt="TC Logo"
+          className={`transition-all duration-300 ${collapsed ? "w-10" : "w-full"}`}
+        />
 
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-2 rounded-lg hover:bg-gray-100"
+          className="
+            absolute -right-3 top-1/2 -translate-y-1/2
+            bg-blue-900 text-white
+            p-1.5 rounded-full shadow-lg
+            hover:bg-blue-800
+          "
         >
           {collapsed ? (
-            <ChevronRightIcon className="w-5 h-5" />
+            <ChevronRightIcon className="w-4 h-4" />
           ) : (
-            <ChevronLeftIcon className="w-5 h-5" />
+            <ChevronLeftIcon className="w-4 h-4" />
           )}
         </button>
       </div>
 
       {/* Menu */}
-      <nav className="flex-1 px-3 space-y-1">
+      <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
         {menuItems.map(({ label, icon: Icon }) => (
           <button
             key={label}
             className={`
               w-full flex items-center gap-3 px-3 py-3 rounded-lg
               text-sm font-medium transition
-              ${
-                label === "Dashboard"
-                  ? "bg-blue-900 text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-              }
+              text-gray-600 dark:text-gray-300
+              hover:bg-gray-100 dark:hover:bg-gray-800
             `}
           >
-            <Icon className="w-5 h-5 shrink-0" />
+            <Icon className="w-5 h-5" />
             {!collapsed && <span>{label}</span>}
           </button>
         ))}
@@ -79,15 +90,51 @@ export default function Sidebar({ collapsed, setCollapsed }) {
 
       {/* Footer */}
       <div className="p-4 space-y-4">
-        {!collapsed && (
-          <div className="flex justify-between bg-gray-100 rounded-full px-4 py-2 text-xs">
-            <span>Light</span>
-            <span>Dark</span>
-          </div>
-        )}
+        {/* Theme Toggle */}
+        <div
+          className={`
+            flex items-center bg-gray-100 dark:bg-gray-800
+            rounded-full px-2 py-1
+            ${collapsed ? "justify-center" : "justify-between"}
+          `}
+        >
+          <button
+            onClick={() => setTheme("light")}
+            className={`
+              flex items-center gap-2 px-3 py-1 rounded-full
+              transition-all
+              ${
+                theme === "light"
+                  ? "bg-white text-yellow-500 scale-105 shadow ring-2 ring-yellow-400/40"
+                  : "text-gray-400 hover:text-yellow-500"
+              }
+            `}
+          >
+            <SunIcon className="w-4 h-4" />
+            {!collapsed && <span className="text-xs">Light</span>}
+          </button>
 
-        <button className="text-red-500 text-sm font-medium">
-          {!collapsed && "Logout"}
+          <button
+            onClick={() => setTheme("dark")}
+            className={`
+              flex items-center gap-2 px-3 py-1 rounded-full
+              transition-all
+              ${
+                theme === "dark"
+                  ? "bg-gray-900 text-blue-400 scale-105 ring-2 ring-blue-400/40"
+                  : "text-gray-400 hover:text-blue-400"
+              }
+            `}
+          >
+            <MoonIcon className="w-4 h-4" />
+            {!collapsed && <span className="text-xs">Dark</span>}
+          </button>
+        </div>
+
+        {/* Logout */}
+        <button className="flex items-center justify-center gap-2 text-red-500">
+          <ArrowRightOnRectangleIcon className="w-5 h-5" />
+          {!collapsed && <span className="text-sm">Logout</span>}
         </button>
       </div>
     </aside>
