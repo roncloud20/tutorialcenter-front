@@ -87,15 +87,16 @@ export const GuardianRegistration = () => {
                 setTimeout(() => {
                     navigate(`/register/guardian/phone/verify?tel=${payload.tel}`);
             }, 3000);
-            } else {
-                setMsg({ 
-                    text: "Registration successful! Please check your email for the OTP",
-                    type:"success",
-                });
-    };
-
-};
+                setTimeout(() => {
+                    navigate(`/register/guardian/email/verify?email=${encodeURIComponent(payload.email)}`);
+                }, 3000);
+            }
+        }
     } catch (error) {
+      console.log("Status:", error.response?.status);  // Should be 422
+  console.log("Errors:", error.response?.data?.errors);  // See which field failed
+  console.log("Message:", error.response?.data?.message);
+
       setToast({
         type: "error",
         message: error?.response?.data?.message || "Registration failed.",

@@ -114,8 +114,7 @@ export default function GuardianTrainingSelection() {
 
     setTimeout(() => {
       setLoading(false);
-      // navigate to the next step in the guardian flow
-      // navigate("/register/guardian/next-step");
+      navigate("/register/guardian/subject/selection");
     }, 1500);
   };
 

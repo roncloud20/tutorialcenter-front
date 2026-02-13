@@ -14,9 +14,13 @@ import { StudentSubjectSelection } from "./pages/public/StudentSignUp/StudentSub
 
 import { GuardianRegistration } from "./pages/public/GuardianSignup/GuardianRegistration.jsx";
 import GuardianPhoneVerification from "./pages/public/GuardianSignup/GuardianPhoneVerification.jsx";
+import GuardianEmailVerification from "./pages/public/GuardianSignup/GuardianEmailVerification.jsx";
 import GuardianAddStudents from "./pages/public/GuardianSignup/GuardianAddStudents.jsx";
 import AddedStudentBiodata from "./pages/public/GuardianSignup/AddedStudentBiodata.jsx";
 import GuardianTrainingSelection from "./pages/public/GuardianSignup/GuardianTrainingSelection.jsx";
+import GuardianSubjectSelection from "./pages/public/GuardianSignup/GuardianSubjectSelection.jsx";
+import GuardianTrainingDuration from "./pages/public/GuardianSignup/GuardianTrainingDuration.jsx";
+import GuardianTrainingPayment from "./pages/public/GuardianSignup/GuardianTrainingPayment.jsx";
 
 import { StudentTrainingDuration } from "./pages/public/StudentSignUp/StudentTrainingDuration.jsx";
 import { StudentTrainingPayment } from "./pages/public/StudentSignUp/StudentTrainingPayment.jsx";
@@ -44,9 +48,13 @@ function App() {
         {/* Guardian Registration Routes */}
         <Route path="/register/guardian" element={<GuardianRegistration />} />
         <Route path="/register/guardian/phone/verify" element={<GuardianPhoneVerification />} />
+        <Route path="/register/guardian/email/verify" element={<GuardianEmailVerification />} />
         <Route path="/register/guardian/addstudent" element={<GuardianAddStudents />} />
         <Route path="/register/guardian/student/biodata" element={<AddedStudentBiodata />} />
         <Route path="/register/guardian/training/selection" element={<GuardianTrainingSelection />} />
+        <Route path="/register/guardian/subject/selection" element={<GuardianSubjectSelection />} />
+        <Route path="/register/guardian/training/duration" element={<GuardianTrainingDuration />} />
+        <Route path="/register/guardian/training/payment" element={<GuardianTrainingPayment />} />
 
         {/* Student Public Registration Routes */}
         <Route path="/student/login" element={<StudentLogin />} />
