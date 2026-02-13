@@ -6,7 +6,7 @@ import TC_logo from "../../../assets/images/tutorial_logo.png";
 import ReturnArrow from "../../../assets/svg/return arrow.svg";
 import signup_img from "../../../assets/images/student_sign_up.jpg";
 
-export default function AddedStudentBiodata() {
+export default function GuardianAddedStudentBiodata() {
   const navigate = useNavigate();
   const [toast, setToast] = useState(null);
   const [errors, setErrors] = useState({});
