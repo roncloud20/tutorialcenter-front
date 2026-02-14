@@ -41,9 +41,9 @@ export default function StudentDashboard() {
 
   return (
     <DashboardLayout>
-      <h1 className="text-xl font-semibold mb-6 dark:text-white">
+      {/* <h1 className="text-xl font-semibold mb-6 dark:text-white">
         Dashboard
-      </h1>
+      </h1> */}
 
       {loading ? (
         <p className="text-sm text-gray-500">Loading courses...</p>
